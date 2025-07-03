@@ -926,7 +926,7 @@ def streamlit_dashboard():
             with col4:
                 st.markdown("⏱️ **Age** - Shows when price was last traded")
         
-        # 1) First, ensure these are real numbers so Streamlit sorts them numerically:
+        # Ensure numerical columns are properly typed for sorting
         num_cols = ['Buy Price','Sell Price','Net Margin','ROI (%)','1h Volume']
         for c in num_cols:
             df[c] = pd.to_numeric(df[c], errors='coerce')
@@ -952,8 +952,18 @@ def streamlit_dashboard():
             axis=1
         )
         
+        # Get buy limits for display
+        limits = get_buy_limits()
+        
+        # Create formatted columns that preserve numerical sorting
+        # Keep original numerical columns and add formatted display columns
+        display_df['Buy Price (formatted)'] = display_df['Buy Price'].apply(lambda x: f"{x:,}")
+        display_df['Sell Price (formatted)'] = display_df['Sell Price'].apply(lambda x: f"{x:,}")
+        display_df['Net Margin (formatted)'] = display_df['Net Margin'].apply(lambda x: f"{x:,}")
+        display_df['ROI (formatted)'] = display_df['ROI (%)'].apply(lambda x: f"{x:.1f}%")
+        display_df['Volume (formatted)'] = display_df['1h Volume'].apply(lambda x: f"{x:,}")
+        
         # Add additional calculated columns
-        display_df['Current Price'] = display_df['Buy Price'].apply(lambda x: f"{x:,}")
         display_df['Approx. Offer Price'] = display_df.apply(
             lambda row: f"{row['Buy Price']:,} ({row['Low Age (min)']:.1f}m ago)", 
             axis=1)
@@ -961,33 +971,24 @@ def streamlit_dashboard():
             lambda row: f"{row['Sell Price']:,} ({row['High Age (min)']:.1f}m ago)", 
             axis=1)
         display_df['Tax'] = display_df['Sell Price'].apply(lambda x: f"{calculate_ge_tax(x):,}")
-        display_df['Approx. Profit (gp)'] = display_df['Net Margin'].apply(lambda x: f"{x:,}")
-        display_df['ROI%'] = display_df['ROI (%)'].apply(lambda x: f"{x:.1f}%")
-        display_df['Buying Quantity (per hour)'] = display_df['1h Volume'].apply(lambda x: f"{x:,}")
-        display_df['Selling Quantity (per hour)'] = display_df['1h Volume'].apply(lambda x: f"{x:,}")
-        
-        # Get buy limits for display
-        limits = get_buy_limits()
         display_df['GE Limit'] = display_df['Item'].apply(lambda x: f"{limits.get(x, 'N/A'):,}" if limits.get(x) else "N/A")
-        
-        # Calculate buy/sell ratio (spread as percentage of buy price)
         display_df['Buy/Sell Ratio'] = display_df.apply(
             lambda row: f"{((row['Sell Price'] - row['Buy Price']) / row['Buy Price'] * 100):+.2f}%", 
             axis=1
         )
         
-        # Select and reorder columns to match GE Tracker layout with color coding
+        # Select columns for display - use original numerical columns for sorting
         columns_to_display = [
             'Status',
             'Item',
-            'Current Price',
+            'Buy Price',  # Keep as numerical for sorting
+            'Sell Price',  # Keep as numerical for sorting  
+            'Net Margin',  # Keep as numerical for sorting
+            'ROI (%)',     # Keep as numerical for sorting
+            '1h Volume',   # Keep as numerical for sorting
             'Approx. Offer Price', 
             'Approx. Sell Price',
             'Tax',
-            'Approx. Profit (gp)',
-            'ROI%',
-            'Buying Quantity (per hour)',
-            'Selling Quantity (per hour)',
             'Buy/Sell Ratio',
             'GE Limit'
         ]
@@ -995,41 +996,52 @@ def streamlit_dashboard():
         # Create the display dataframe
         final_display_df = display_df[columns_to_display].copy()
         
-        # Apply custom CSS for color coding
+        # Apply custom CSS for better formatting
         st.markdown("""
         <style>
         .stDataFrame {
             font-size: 12px;
         }
-        .green-row {
-            background-color: rgba(76, 175, 80, 0.1);
-        }
-        .yellow-row {
-            background-color: rgba(255, 235, 59, 0.1);
-        }
-        .red-row {
-            background-color: rgba(244, 67, 54, 0.1);
-        }
         </style>
         """, unsafe_allow_html=True)
         
-        # Display with enhanced styling
-        st.dataframe(
-            final_display_df, 
-            use_container_width=True, 
-            key="color_coded_flip_table",
-            height=600,
-            hide_index=True
-        )
+        # Use column configuration to format display while preserving sorting
+        column_config = {
+            'Buy Price': st.column_config.NumberColumn(
+                'Buy Price',
+                help='Current buy price',
+                format='%d gp'
+            ),
+            'Sell Price': st.column_config.NumberColumn(
+                'Sell Price', 
+                help='Current sell price',
+                format='%d gp'
+            ),
+            'Net Margin': st.column_config.NumberColumn(
+                'Net Margin',
+                help='Profit after GE tax',
+                format='%d gp'
+            ),
+            'ROI (%)': st.column_config.NumberColumn(
+                'ROI (%)',
+                help='Return on investment',
+                format='%.1f%%'
+            ),
+            '1h Volume': st.column_config.NumberColumn(
+                '1h Volume',
+                help='Trading volume per hour',
+                format='%d'
+            )
+        }
         
-        # 3) Build and display the final DataFrame
-        final_display_df = display_df[columns_to_display].copy()
-
+        # Display with proper numerical sorting
         st.dataframe(
             final_display_df,
             use_container_width=True,
-            key="color_coded_flip_table",
-            height=600
+            key="properly_sorted_flip_table",
+            height=600,
+            hide_index=True,
+            column_config=column_config
         )   
         
         # Mode-specific information
