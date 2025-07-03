@@ -595,7 +595,7 @@ def filter_items(price_data_result, hourly_data, id2name, show_all=False, mode="
                 'Item ID': iid,
                 'Data Age (min)': data_age_minutes,
                 'High Age (min)': high_age_minutes,
-                'Low Age (min)': low_age_minutes
+                'Low Age (min)': low_age_minutes,
                 
                 'Manipulation Score': manipulation['score'],
                 'Manipulation Risk': manipulation['risk_level'],
