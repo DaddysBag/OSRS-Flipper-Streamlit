@@ -1092,18 +1092,25 @@ def streamlit_dashboard():
                         axis=1
                     )
                     
-                    available = [c for c in columns_t if c in filtered_display_df.columns]
-                    missing   = [c for c in columns_t if c not in filtered_display_df.columns]
+                    #Only keep the columns that actually exist
+                    available = [c for c in columns_to_display if c in filtered_display_df.columns]
+                    missing   = [c for c in columns_to_display if c not in filtered_display_df.columns]
 
                     if missing:
-                        st.warning(f"These columns are missing and will be hidden: {missing}")
+                        st.warning(f"The following columns are missing and will be hidden: {missing}")
 
                     if not available:
-                        st.error("No columns to display—check your filters or data source.")
-                        return
+                        st.error("No columns to display—please check your filters or data source.")
+                        return  # or st.stop() to halt execution here
 
-                    final_filtered_df = filtered_display_df[available]
-                    st.dataframe(final_filtered_df, use_container_width=True)
+                    final_filtered_df = filtered_display_df[available].copy()
+                    st.dataframe(
+                        final_filtered_df,
+                        use_container_width=True,
+                        key="filtered_flip_table",
+                        height=400,
+                        hide_index=True
+                    )
                     
                     st.write("Columns we have right now:", list(filtered_display_df.columns))
         
