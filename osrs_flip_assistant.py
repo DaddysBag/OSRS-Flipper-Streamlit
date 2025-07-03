@@ -1092,15 +1092,20 @@ def streamlit_dashboard():
                         axis=1
                     )
                     
-                    final_filtered_df = filtered_display_df[columns_to_display].copy()
+                    available = [c for c in columns_t if c in filtered_display_df.columns]
+                    missing   = [c for c in columns_t if c not in filtered_display_df.columns]
+
+                    if missing:
+                        st.warning(f"These columns are missing and will be hidden: {missing}")
+
+                    if not available:
+                        st.error("No columns to display—check your filters or data source.")
+                        return
+
+                    final_filtered_df = filtered_display_df[available]
+                    st.dataframe(final_filtered_df, use_container_width=True)
                     
-                    st.dataframe(
-                        final_filtered_df, 
-                        use_container_width=True, 
-                        key="filtered_flip_table",
-                        height=400,
-                        hide_index=True
-                    )
+                    st.write("Columns we have right now:", list(filtered_display_df.columns))
         
         # Create a container for the main data table that won't refresh when charts update
         table_container = st.container()
