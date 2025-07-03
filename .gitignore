@@ -4,6 +4,7 @@ __pycache__/
 
 # Local streamlit secrets
 google_credentials.json
+.streamlit/secrets.toml
 
 # Build artifacts
 dist/
