@@ -873,7 +873,7 @@ def streamlit_dashboard():
     elif mode == "High Volume":
         # High Volume mode: focus on liquid markets with good profit
         m, v, u = 100, 1000, 1000  # Lower barriers for high volume items
-        st.sidebar.info("🔥 High Volume Mode: Shows 250 highest traded items sorted by profit")
+        st.sidebar.info("🔥 High Volume Mode: Shows 50 highest traded items sorted by profit")
     else:
         m, v, u = MIN_MARGIN, MIN_VOLUME, MIN_UTILITY
     
