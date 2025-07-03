@@ -309,6 +309,159 @@ def categorize_item(name):
             return cat
     return 'Other'
 
+# Add these functions after your existing helper functions (around line 200)
+
+# Global cache for performance
+MANIPULATION_CACHE = {}
+VOLATILITY_CACHE = {}
+
+def detect_manipulation(item_id, current_price, hourly_data):
+    """
+    Detect potential price manipulation using statistical analysis
+    Returns manipulation score (0-10) and flags
+    """
+    try:
+        # Check cache first
+        cache_key = f"{item_id}_{current_price}"
+        if cache_key in MANIPULATION_CACHE:
+            return MANIPULATION_CACHE[cache_key]
+        
+        flags = []
+        score = 0
+        
+        if not hourly_data:
+            return {'score': 0, 'flags': ['No data'], 'risk_level': 'Unknown'}
+        
+        # Get volumes and prices
+        high_vol = hourly_data.get('highPriceVolume', 0)
+        low_vol = hourly_data.get('lowPriceVolume', 0)
+        total_vol = high_vol + low_vol
+        
+        avg_high = hourly_data.get('avgHighPrice', current_price)
+        avg_low = hourly_data.get('avgLowPrice', current_price)
+        
+        # Flag 1: Unusual volume spikes
+        if total_vol > 10000:  # Very high volume
+            score += 2
+            flags.append('High volume spike')
+        
+        # Flag 2: Wide spread relative to price
+        if avg_high and avg_low:
+            spread_ratio = (avg_high - avg_low) / avg_low
+            if spread_ratio > 0.1:  # >10% spread
+                score += 3
+                flags.append('Wide price spread')
+        
+        # Flag 3: Unbalanced buy/sell ratio
+        if high_vol > 0 and low_vol > 0:
+            ratio = max(high_vol, low_vol) / min(high_vol, low_vol)
+            if ratio > 10:  # Very unbalanced
+                score += 2
+                flags.append('Unbalanced order flow')
+        
+        # Flag 4: Price vs volume inconsistency
+        if total_vol > 0 and current_price > 1000:
+            expected_vol = max(100, 50000 / current_price)  # Inverse relationship
+            if total_vol > expected_vol * 5:
+                score += 2
+                flags.append('Volume/price inconsistency')
+        
+        # Determine risk level
+        if score >= 7:
+            risk_level = 'High'
+        elif score >= 4:
+            risk_level = 'Medium'
+        elif score >= 2:
+            risk_level = 'Low'
+        else:
+            risk_level = 'Normal'
+        
+        result = {
+            'score': min(score, 10),
+            'flags': flags,
+            'risk_level': risk_level
+        }
+        
+        # Cache result
+        MANIPULATION_CACHE[cache_key] = result
+        return result
+        
+    except Exception as e:
+        print(f"Error in manipulation detection: {e}")
+        return {'score': 0, 'flags': ['Error'], 'risk_level': 'Unknown'}
+
+def calculate_volatility_score(item_id, current_price, hourly_data):
+    """
+    Calculate volatility score based on price stability
+    Higher score = more volatile = higher risk
+    """
+    try:
+        if item_id in VOLATILITY_CACHE:
+            return VOLATILITY_CACHE[item_id]
+        
+        # Use hourly data for quick volatility estimate
+        if not hourly_data:
+            return {'score': 5, 'level': 'Unknown', 'coefficient': 0}
+        
+        high_price = hourly_data.get('avgHighPrice', current_price)
+        low_price = hourly_data.get('avgLowPrice', current_price)
+        
+        if high_price and low_price and low_price > 0:
+            # Calculate price range as volatility indicator
+            price_range = (high_price - low_price) / low_price
+            
+            # Convert to 0-10 scale
+            if price_range < 0.02:        # <2% variation
+                score, level = 1, 'Very Low'
+            elif price_range < 0.05:      # <5% variation
+                score, level = 2, 'Low'
+            elif price_range < 0.10:      # <10% variation
+                score, level = 4, 'Medium'
+            elif price_range < 0.20:      # <20% variation
+                score, level = 6, 'High'
+            else:                         # >20% variation
+                score, level = 8, 'Very High'
+        else:
+            score, level, price_range = 5, 'Unknown', 0
+        
+        result = {
+            'score': score,
+            'level': level,
+            'coefficient': round(price_range, 4)
+        }
+        
+        VOLATILITY_CACHE[item_id] = result
+        return result
+        
+    except Exception as e:
+        print(f"Error calculating volatility: {e}")
+        return {'score': 5, 'level': 'Unknown', 'coefficient': 0}
+
+def calculate_capital_at_risk(buy_price, volume, ge_limit, volatility_score):
+    """
+    Calculate potential capital loss if price moves against you
+    """
+    try:
+        # Maximum position size
+        max_position = min(volume, ge_limit) if ge_limit else volume
+        capital_required = buy_price * max_position
+        
+        # Risk factor based on volatility
+        risk_multiplier = 1 + (volatility_score / 10) * 0.5  # Up to 50% additional risk
+        
+        # Potential loss (assume 10% adverse move for high volatility items)
+        potential_loss_pct = 0.05 + (volatility_score / 10) * 0.1  # 5-15% loss
+        potential_loss = capital_required * potential_loss_pct * risk_multiplier
+        
+        return {
+            'capital_required': capital_required,
+            'potential_loss': potential_loss,
+            'risk_ratio': potential_loss / capital_required if capital_required > 0 else 0
+        }
+        
+    except Exception as e:
+        return {'capital_required': 0, 'potential_loss': 0, 'risk_ratio': 0}
+
 # FIXED: Main filter with momentum, category, seasonality
 def filter_items(price_data_result, hourly_data, id2name, show_all=False, mode="Custom"):
     """Filter and analyze items with enhanced debugging - FIXED VERSION"""
@@ -396,6 +549,27 @@ def filter_items(price_data_result, hourly_data, id2name, show_all=False, mode="
             gl = limits.get(name, 1000)  # Default to 1000 if not found
             roi = round(net / lo * 100, 2) if lo else 0
             
+            # ENHANCED ANALYTICS - Add these lines after roi calculation
+            # 1. Manipulation Detection
+            manipulation = detect_manipulation(iid, hi, hourly)
+            
+            # 2. Volatility Scoring
+            volatility = calculate_volatility_score(iid, hi, hourly)
+            
+            # 3. Capital at Risk Analysis
+            capital_risk = calculate_capital_at_risk(lo, vol1h, gl, volatility['score'])
+            
+            # 4. Risk-Adjusted Utility Score
+            risk_factor = 1 + (volatility['score'] / 10) + (manipulation['score'] / 20)
+            risk_adjusted_util = util / risk_factor if risk_factor > 0 else 0
+            
+            # 5. Profit Persistence Score (simplified)
+            persistence_score = 10 - manipulation['score'] - (volatility['score'] / 2)
+            persistence_score = max(0, min(10, persistence_score))
+            
+            # 6. Liquidity Score
+            liquidity_score = min(10, vol1h / 100) if vol1h > 0 else 0
+            
             # Calculate actual data age in seconds
             item_timestamp = stats.get('highTime', data_timestamp)
             data_age_seconds = current_time - item_timestamp
@@ -422,6 +596,17 @@ def filter_items(price_data_result, hourly_data, id2name, show_all=False, mode="
                 'Data Age (min)': data_age_minutes,
                 'High Age (min)': high_age_minutes,
                 'Low Age (min)': low_age_minutes
+                
+                'Manipulation Score': manipulation['score'],
+                'Manipulation Risk': manipulation['risk_level'],
+                'Volatility Score': volatility['score'],
+                'Volatility Level': volatility['level'],
+                'Risk Adjusted Utility': risk_adjusted_util,
+                'Profit Persistence': persistence_score,
+                'Liquidity Score': liquidity_score,
+                'Capital Required': capital_risk['capital_required'],
+                'Potential Loss': capital_risk['potential_loss'],
+                'Risk Ratio': capital_risk['risk_ratio']
             })
             
         except Exception as e:
@@ -447,21 +632,30 @@ def filter_items(price_data_result, hourly_data, id2name, show_all=False, mode="
     if show_all:
         print("📋 Showing all items (no filtering)")
         return df.sort_values('Utility', ascending=False)
-    
-    # Apply core filters
+
+    # Apply core filters with enhanced criteria
     season_th = st.session_state.get('season_th', 0) if 'st' in globals() else 0
+    manipulation_th = st.session_state.get('manipulation_th', 7) if 'st' in globals() else 7
+    volatility_th = st.session_state.get('volatility_th', 8) if 'st' in globals() else 8
+
     before_filter = len(df)
-    
-    df = df[(df['Net Margin'] >= MIN_MARGIN) &
-            (df['1h Volume'] >= MIN_VOLUME) &
-            (df['Utility'] >= MIN_UTILITY) &
-            (df['Season Ratio'] >= season_th)]
-    
+
+    # Enhanced filtering with risk considerations
+    df = df[
+        (df['Net Margin'] >= MIN_MARGIN) &
+        (df['1h Volume'] >= MIN_VOLUME) &
+        (df['Utility'] >= MIN_UTILITY) &
+        (df['Season Ratio'] >= season_th) &
+        (df['Manipulation Score'] <= manipulation_th) &
+        (df['Volatility Score'] <= volatility_th)
+    ]
+
     after_filter = len(df)
-    print(f"🔍 Applied filters: {before_filter} -> {after_filter} items")
-    print(f"   Min Margin: {MIN_MARGIN}, Min Volume: {MIN_VOLUME}, Min Utility: {MIN_UTILITY}, Season Th: {season_th}")
-    
-    return df.sort_values('Utility', ascending=False)
+    print(f"🔍 Enhanced filters applied: {before_filter} -> {after_filter} items")
+    print(f"   Max Manipulation: {manipulation_th}, Max Volatility: {volatility_th}")
+
+    # Sort by Risk Adjusted Utility instead of regular Utility
+    return df.sort_values('Risk Adjusted Utility', ascending=False)
 
 # Alerts with rate-limit (3 minutes minimum between alerts)
 def send_discord_alert(item, buy, sell, margin):
@@ -810,6 +1004,10 @@ def streamlit_dashboard():
         st.session_state.presets = {}
     if 'season_th' not in st.session_state:
         st.session_state.season_th = 0.0
+    if 'manipulation_th' not in st.session_state:
+        st.session_state.manipulation_th = 7
+    if 'volatility_th' not in st.session_state:
+        st.session_state.volatility_th = 8
     
     st.title("💸 OSRS GE Flipping Assistant")
     
@@ -882,6 +1080,19 @@ def streamlit_dashboard():
     MIN_VOLUME = st.sidebar.slider("Min Volume/hr", 0, 20000, v, 100)
     MIN_UTILITY = st.sidebar.slider("Min Utility", 0, 50000, u, 500)
     st.session_state['season_th'] = st.sidebar.slider("Min Season Ratio", 0.0, 5.0, st.session_state.get('season_th', 0.0), 0.1)
+    
+    st.sidebar.subheader("🔬 Advanced Risk Filters")
+    st.session_state['manipulation_th'] = st.sidebar.slider(
+        "Max Manipulation Score", 0, 10, 
+        st.session_state.get('manipulation_th', 7), 1, 
+        help="Lower = stricter filtering of potentially manipulated items"
+    )
+    st.session_state['volatility_th'] = st.sidebar.slider(
+        "Max Volatility Score", 0, 10, 
+        st.session_state.get('volatility_th', 8), 1,
+        help="Lower = stricter filtering of volatile items"
+    )
+    
     show_all = st.sidebar.checkbox("Show All", value=False)
     
     # Auto-refresh
@@ -915,16 +1126,34 @@ def streamlit_dashboard():
         st.subheader("🔍 Top Flip Opportunities")
         
         # Add color coding explanation
-        with st.expander("🎨 Color Coding Guide"):
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.markdown("🟢 **Green** - Fresh data (<2m) with high ROI & Volume")
-            with col2:
-                st.markdown("🟡 **Yellow** - Aging data (2-5m) or moderate ROI")
-            with col3:
-                st.markdown("🔴 **Red** - Old data (>5m) or low ROI")
-            with col4:
-                st.markdown("⏱️ **Age** - Shows when price was last traded")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+        with col1:
+            total_items = len(df)
+            st.metric("Total Items", total_items)
+
+        with col2:
+            avg_margin = df['Net Margin'].mean()
+            st.metric("Avg Margin", f"{avg_margin:,.0f} gp")
+
+        with col3:
+            avg_risk_util = df['Risk Adjusted Utility'].mean()
+            st.metric("Avg Risk Adj. Utility", f"{avg_risk_util:,.0f}")
+
+        with col4:
+            safe_items = len(df[(df['Manipulation Score'] <= 3) & (df['Volatility Score'] <= 4)])
+            st.metric("Safe Items", safe_items)
+
+        with col5:
+            high_risk_items = len(df[(df['Manipulation Score'] >= 7) | (df['Volatility Score'] >= 8)])
+            st.metric("High Risk Items", high_risk_items)
+
+        with col6:
+            if 'Capital Required' in df.columns:
+                total_capital = df['Capital Required'].sum()
+                st.metric("Total Capital", f"{total_capital:,.0f} gp")
+            else:
+                st.metric("Total Volume/hr", f"{df['1h Volume'].sum():,.0f}")
         
         # Ensure numerical columns are properly typed for sorting
         num_cols = ['Buy Price','Sell Price','Net Margin','ROI (%)','1h Volume']
@@ -934,23 +1163,41 @@ def streamlit_dashboard():
         display_df = df.copy()
         
         # Add color coding based on ROI and data age
-        def get_color_code(roi, data_age, volume):
-            if data_age > 5:  # Data older than 5 minutes
-                return "🔴"  # Red for old data
-            elif data_age > 2:  # Data older than 2 minutes
-                return "🟡"  # Yellow for aging data
-            elif roi >= 5 and volume >= 1000:  # High ROI and volume
-                return "🟢"  # Green for excellent
-            elif roi >= 2 and volume >= 500:   # Moderate ROI and volume
-                return "🟡"  # Yellow for good
+        def get_enhanced_color_code(row):
+            roi, data_age, volume = row['ROI (%)'], row['Data Age (min)'], row['1h Volume']
+            
+            # Check if enhanced columns exist
+            if 'Manipulation Score' in row and 'Volatility Score' in row:
+                manipulation, volatility = row['Manipulation Score'], row['Volatility Score']
+                
+                # High risk factors take priority
+                if manipulation >= 7 or volatility >= 8:
+                    return "⚠️"  # Warning for high risk
+                elif data_age > 5:
+                    return "🔴"  # Red for old data
+                elif data_age > 2:
+                    return "🟡"  # Yellow for aging data
+                elif roi >= 5 and volume >= 1000 and manipulation <= 3 and volatility <= 4:
+                    return "🟢"  # Green for excellent low-risk opportunities
+                elif roi >= 2 and volume >= 500:
+                    return "🟡"  # Yellow for good
+                else:
+                    return "🔴"  # Red for caution
             else:
-                return "🔴"  # Red for caution
-        
-        # Apply color coding
-        display_df['Status'] = display_df.apply(
-            lambda row: get_color_code(row['ROI (%)'], row['Data Age (min)'], row['1h Volume']), 
-            axis=1
-        )
+                # Fall back to original logic if enhanced columns don't exist
+                if data_age > 5:
+                    return "🔴"
+                elif data_age > 2:
+                    return "🟡"
+                elif roi >= 5 and volume >= 1000:
+                    return "🟢"
+                elif roi >= 2 and volume >= 500:
+                    return "🟡"
+                else:
+                    return "🔴"
+
+        # Apply the enhanced color coding
+        display_df['Status'] = display_df.apply(get_enhanced_color_code, axis=1)
         
         # Get buy limits for display
         limits = get_buy_limits()
@@ -981,11 +1228,14 @@ def streamlit_dashboard():
         columns_to_display = [
             'Status',
             'Item',
-            'Buy Price',  # Keep as numerical for sorting
-            'Sell Price',  # Keep as numerical for sorting  
-            'Net Margin',  # Keep as numerical for sorting
-            'ROI (%)',     # Keep as numerical for sorting
-            '1h Volume',   # Keep as numerical for sorting
+            'Buy Price',
+            'Sell Price',  
+            'Net Margin',
+            'ROI (%)',
+            '1h Volume',
+            'Risk Adjusted Utility',
+            'Manipulation Risk',
+            'Volatility Level',
             'Approx. Offer Price', 
             'Approx. Sell Price',
             'Tax',
@@ -1031,6 +1281,18 @@ def streamlit_dashboard():
                 '1h Volume',
                 help='Trading volume per hour',
                 format='%d'
+            'Risk Adjusted Utility': st.column_config.NumberColumn(
+                'Risk Adj. Utility',
+                help='Utility score adjusted for manipulation and volatility risk',
+                format='%.0f'
+            ),
+            'Manipulation Risk': st.column_config.TextColumn(
+                'Manip. Risk',
+                help='Risk level of price manipulation (Normal/Low/Medium/High)'
+            ),
+            'Volatility Level': st.column_config.TextColumn(
+                'Volatility',
+                help='Price volatility level (Very Low to Very High)'
             )
         }
         
@@ -1070,6 +1332,84 @@ def streamlit_dashboard():
         with col5:
             total_volume = df['1h Volume'].sum()
             st.metric("Total Volume/hr", f"{total_volume:,.0f}")
+        
+        # Portfolio optimization section
+        st.subheader("📈 Portfolio Optimization")
+
+        with st.expander("💼 Portfolio Analysis"):
+            # Allow user to select items for portfolio analysis
+            selected_items = st.multiselect(
+                "Select items for portfolio analysis:",
+                options=df['Item'].tolist(),
+                default=df.head(min(10, len(df)))['Item'].tolist() if not df.empty else []
+            )
+            
+            if selected_items:
+                portfolio_df = df[df['Item'].isin(selected_items)]
+                
+                # Calculate portfolio metrics
+                total_capital = portfolio_df['Capital Required'].sum() if 'Capital Required' in portfolio_df.columns else 0
+                total_margin = portfolio_df['Net Margin'].sum()
+                avg_risk = portfolio_df['Risk Ratio'].mean() if 'Risk Ratio' in portfolio_df.columns else 0
+                
+                # Diversification score
+                categories = portfolio_df['Category'].value_counts()
+                diversification_score = min(10, len(categories) * 2)
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Portfolio Metrics:**")
+                    st.metric("Total Items", len(portfolio_df))
+                    st.metric("Total Potential Margin", f"{total_margin:,.0f} gp")
+                    st.metric("Diversification Score", f"{diversification_score}/10")
+                    
+                    if total_capital > 0:
+                        st.metric("Total Capital Required", f"{total_capital:,.0f} gp")
+                        st.metric("Average Risk Ratio", f"{avg_risk:.2%}")
+                
+                with col2:
+                    st.write("**Category Breakdown:**")
+                    category_counts = portfolio_df['Category'].value_counts()
+                    st.bar_chart(category_counts)
+                    
+                    # Risk distribution
+                    if 'Manipulation Risk' in portfolio_df.columns:
+                        st.write("**Risk Distribution:**")
+                        risk_counts = portfolio_df['Manipulation Risk'].value_counts()
+                        for risk, count in risk_counts.items():
+                            st.write(f"• {risk}: {count} items")
+
+        # Enhanced risk analysis section
+        st.subheader("⚠️ Risk Analysis")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if 'Manipulation Risk' in df.columns:
+                st.write("**Manipulation Risk Distribution:**")
+                manip_counts = df['Manipulation Risk'].value_counts()
+                st.bar_chart(manip_counts)
+            else:
+                st.write("**Traditional Risk Factors:**")
+                high_margin = len(df[df['Net Margin'] > df['Net Margin'].quantile(0.8)])
+                high_volume = len(df[df['1h Volume'] > df['1h Volume'].quantile(0.8)])
+                st.write(f"• High Margin Items: {high_margin}")
+                st.write(f"• High Volume Items: {high_volume}")
+
+        with col2:
+            if 'Volatility Level' in df.columns:
+                st.write("**Volatility Distribution:**")
+                vol_counts = df['Volatility Level'].value_counts()
+                st.bar_chart(vol_counts)
+            else:
+                st.write("**Data Freshness:**")
+                fresh_data = len(df[df['Data Age (min)'] <= 2])
+                aging_data = len(df[(df['Data Age (min)'] > 2) & (df['Data Age (min)'] <= 5)])
+                old_data = len(df[df['Data Age (min)'] > 5])
+                st.write(f"• Fresh Data (<2m): {fresh_data}")
+                st.write(f"• Aging Data (2-5m): {aging_data}")
+                st.write(f"• Old Data (>5m): {old_data}")
         
         # Add filtering controls similar to GE Tracker
         with st.expander("🔧 Advanced Filters"):
