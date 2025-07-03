@@ -1,6 +1,11 @@
+# Byte-compiled / optimized files
 __pycache__/
 *.pyc
-.venv/
+
+# Local streamlit secrets
+google_credentials.json
+
+# Build artifacts
 dist/
 build/
 *.spec
