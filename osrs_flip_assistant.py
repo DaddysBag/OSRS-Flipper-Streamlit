@@ -926,7 +926,11 @@ def streamlit_dashboard():
             with col4:
                 st.markdown("⏱️ **Age** - Shows when price was last traded")
         
-        # Create enhanced dataframe with better formatting and color coding
+        # 1) First, ensure these are real numbers so Streamlit sorts them numerically:
+        num_cols = ['Buy Price','Sell Price','Net Margin','ROI (%)','1h Volume']
+        for c in num_cols:
+            df[c] = pd.to_numeric(df[c], errors='coerce')
+            
         display_df = df.copy()
         
         # Add color coding based on ROI and data age
@@ -1017,6 +1021,27 @@ def streamlit_dashboard():
             height=600,
             hide_index=True
         )
+        
+        final_display_df = display_df[columns_to_display].copy()
+        
+        styler = final_display_df.style.format({
+            'Current Price': "{:,}",
+            'Approx. Offer Price': "{:,}",
+            'Approx. Sell Price': "{:,}",
+            'Tax': "{:,}",
+            'Approx. Profit (gp)': "{:,}",
+            'ROI%': "{:.1f}%",
+            'Buying Quantity (per hour)': "{:,}",
+            'Selling Quantity (per hour)': "{:,}",
+            'Buy/Sell Ratio': "{:+.2f}%"
+        })
+        
+        st.dataframe(
+            styler,
+            use_container_width=True,
+            key="color_coded_flip_table",
+            height=600
+        )   
         
         # Mode-specific information
         if mode == "High Volume":
