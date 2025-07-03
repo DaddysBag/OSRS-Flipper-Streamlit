@@ -1022,22 +1022,11 @@ def streamlit_dashboard():
             hide_index=True
         )
         
+        # 3) Build and display the final DataFrame
         final_display_df = display_df[columns_to_display].copy()
-        
-        styler = final_display_df.style.format({
-            'Current Price': "{:,}",
-            'Approx. Offer Price': "{:,}",
-            'Approx. Sell Price': "{:,}",
-            'Tax': "{:,}",
-            'Approx. Profit (gp)': "{:,}",
-            'ROI%': "{:.1f}%",
-            'Buying Quantity (per hour)': "{:,}",
-            'Selling Quantity (per hour)': "{:,}",
-            'Buy/Sell Ratio': "{:+.2f}%"
-        })
-        
+
         st.dataframe(
-            styler,
+            final_display_df,
             use_container_width=True,
             key="color_coded_flip_table",
             height=600
