@@ -1281,6 +1281,7 @@ def streamlit_dashboard():
                 '1h Volume',
                 help='Trading volume per hour',
                 format='%d'
+            ),
             'Risk Adjusted Utility': st.column_config.NumberColumn(
                 'Risk Adj. Utility',
                 help='Utility score adjusted for manipulation and volatility risk',
