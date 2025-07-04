@@ -165,17 +165,27 @@ def create_interactive_chart(ts: pd.DataFrame,
         subplot_titles=['Price Chart', 'Volume']
     )
 
-    # Price traces with enhanced styling
+    # Professional Price Traces - GE Tracker Colors
     fig.add_trace(
         go.Scatter(
             x=ts['timestamp'],
             y=ts['high'],
             mode='lines+markers',
             name='Sell Price',
-            line=dict(color='#e74c3c', width=2),
-            marker=dict(size=3, color='#e74c3c'),
-            hovertemplate='<b>Sell Price</b><br>' +
-                          'Price: %{y:,.0f} gp<br>' +
+            line=dict(
+                color='#ff6b6b',  # Professional red
+                width=2.5,
+                shape='spline',  # Smooth curves
+                smoothing=0.3
+            ),
+            marker=dict(
+                size=4,
+                color='#ff6b6b',
+                symbol='circle',
+                line=dict(width=1, color='#ffffff')
+            ),
+            hovertemplate='<b>🔴 Sell Price</b><br>' +
+                          'Price: <b>%{y:,.0f} gp</b><br>' +
                           'Time: %{x|%b %d, %H:%M}<br>' +
                           '<extra></extra>'
         ), row=1, col=1
@@ -187,28 +197,208 @@ def create_interactive_chart(ts: pd.DataFrame,
             y=ts['low'],
             mode='lines+markers',
             name='Buy Price',
-            line=dict(color='#27ae60', width=2),
-            marker=dict(size=3, color='#27ae60'),
-            hovertemplate='<b>Buy Price</b><br>' +
-                          'Price: %{y:,.0f} gp<br>' +
+            line=dict(
+                color='#51cf66',  # Professional green
+                width=2.5,
+                shape='spline',
+                smoothing=0.3
+            ),
+            marker=dict(
+                size=4,
+                color='#51cf66',
+                symbol='circle',
+                line=dict(width=1, color='#ffffff')
+            ),
+            hovertemplate='<b>🟢 Buy Price</b><br>' +
+                          'Price: <b>%{y:,.0f} gp</b><br>' +
                           'Time: %{x|%b %d, %H:%M}<br>' +
                           '<extra></extra>'
         ), row=1, col=1
     )
 
-    # Add fill area between high and low prices
-    fig.add_trace(
-        go.Scatter(
-            x=ts['timestamp'].tolist() + ts['timestamp'].tolist()[::-1],
-            y=ts['high'].tolist() + ts['low'].tolist()[::-1],
-            fill='toself',
-            fillcolor='rgba(100, 100, 100, 0.1)',
-            line=dict(color='rgba(255,255,255,0)'),
-            name='Price Range',
-            showlegend=False,
-            hoverinfo='skip'
-        ), row=1, col=1
-    )
+    # Enhanced Price Fill Areas - Multiple zones for better visualization
+    if not ts.empty and len(ts) > 1:
+        from utils import calculate_ge_tax
+
+        # Calculate profitability for each time period
+        profitable_periods = []
+        unprofitable_periods = []
+
+        for i in range(len(ts)):
+            high_price = ts['high'].iloc[i]
+            low_price = ts['low'].iloc[i]
+            ge_tax = calculate_ge_tax(high_price)
+            net_profit = high_price - low_price - ge_tax
+
+            timestamp = ts['timestamp'].iloc[i]
+
+            if net_profit > 0:
+                profitable_periods.append({
+                    'timestamp': timestamp,
+                    'high': high_price,
+                    'low': low_price,
+                    'profit': net_profit
+                })
+            else:
+                unprofitable_periods.append({
+                    'timestamp': timestamp,
+                    'high': high_price,
+                    'low': low_price,
+                    'loss': abs(net_profit)
+                })
+
+        # Create profitable fill areas (green gradient)
+        if profitable_periods:
+            profit_timestamps = [p['timestamp'] for p in profitable_periods]
+            profit_highs = [p['high'] for p in profitable_periods]
+            profit_lows = [p['low'] for p in profitable_periods]
+
+            # Main profitable area
+            fig.add_trace(
+                go.Scatter(
+                    x=profit_timestamps + profit_timestamps[::-1],
+                    y=profit_highs + profit_lows[::-1],
+                    fill='toself',
+                    fillcolor='rgba(46, 204, 113, 0.15)',  # Green with transparency
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name='Profitable Spread',
+                    hovertemplate='<b>Profitable Period</b><br>' +
+                                  'Potential profit after tax<br>' +
+                                  '<extra></extra>',
+                    showlegend=False
+                ), row=1, col=1
+            )
+
+            # Add profit intensity overlay (darker green for higher profits)
+            max_profit = max(p['profit'] for p in profitable_periods) if profitable_periods else 0
+            if max_profit > 0:
+                # Create intensity-based fills
+                high_profit_periods = [p for p in profitable_periods if p['profit'] >= max_profit * 0.7]
+
+                if high_profit_periods:
+                    hp_timestamps = [p['timestamp'] for p in high_profit_periods]
+                    hp_highs = [p['high'] for p in high_profit_periods]
+                    hp_lows = [p['low'] for p in high_profit_periods]
+
+                    fig.add_trace(
+                        go.Scatter(
+                            x=hp_timestamps + hp_timestamps[::-1],
+                            y=hp_highs + hp_lows[::-1],
+                            fill='toself',
+                            fillcolor='rgba(39, 174, 96, 0.25)',  # Darker green for high profit
+                            line=dict(color='rgba(255,255,255,0)'),
+                            name='High Profit Zone',
+                            hovertemplate='<b>High Profit Period</b><br>' +
+                                          'Excellent profit opportunity<br>' +
+                                          '<extra></extra>',
+                            showlegend=False
+                        ), row=1, col=1
+                    )
+
+        # Create unprofitable fill areas (red/orange gradient)
+        if unprofitable_periods:
+            loss_timestamps = [p['timestamp'] for p in unprofitable_periods]
+            loss_highs = [p['high'] for p in unprofitable_periods]
+            loss_lows = [p['low'] for p in unprofitable_periods]
+
+            fig.add_trace(
+                go.Scatter(
+                    x=loss_timestamps + loss_timestamps[::-1],
+                    y=loss_highs + loss_lows[::-1],
+                    fill='toself',
+                    fillcolor='rgba(231, 76, 60, 0.12)',  # Light red with transparency
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name='Unprofitable Spread',
+                    hovertemplate='<b>Unprofitable Period</b><br>' +
+                                  'Loss after GE tax<br>' +
+                                  '<extra></extra>',
+                    showlegend=False
+                ), row=1, col=1
+            )
+
+        # Add break-even zone (yellow/orange for marginal profits)
+        marginal_periods = []
+        for i in range(len(ts)):
+            high_price = ts['high'].iloc[i]
+            low_price = ts['low'].iloc[i]
+            ge_tax = calculate_ge_tax(high_price)
+            net_profit = high_price - low_price - ge_tax
+
+            # Marginal = small profit (0-500 gp)
+            if 0 < net_profit <= 500:
+                marginal_periods.append({
+                    'timestamp': ts['timestamp'].iloc[i],
+                    'high': high_price,
+                    'low': low_price
+                })
+
+        if marginal_periods:
+            marg_timestamps = [p['timestamp'] for p in marginal_periods]
+            marg_highs = [p['high'] for p in marginal_periods]
+            marg_lows = [p['low'] for p in marginal_periods]
+
+            fig.add_trace(
+                go.Scatter(
+                    x=marg_timestamps + marg_timestamps[::-1],
+                    y=marg_highs + marg_lows[::-1],
+                    fill='toself',
+                    fillcolor='rgba(241, 196, 15, 0.15)',  # Yellow/orange for marginal
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name='Marginal Profit Zone',
+                    hovertemplate='<b>Marginal Profit Period</b><br>' +
+                                  'Small profit (0-500 gp)<br>' +
+                                  '<extra></extra>',
+                    showlegend=False
+                ), row=1, col=1
+            )
+
+            # Add dynamic fill area legend
+            fill_legend_traces = []
+
+            # Count different zones
+            profitable_count = len([p for p in profitable_periods]) if 'profitable_periods' in locals() else 0
+            unprofitable_count = len([p for p in unprofitable_periods]) if 'unprofitable_periods' in locals() else 0
+            marginal_count = len([p for p in marginal_periods]) if 'marginal_periods' in locals() else 0
+
+            # Add invisible traces for legend
+            if profitable_count > 0:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[ts['timestamp'].iloc[0]],
+                        y=[ts['high'].iloc[0]],
+                        mode='markers',
+                        marker=dict(color='rgba(46, 204, 113, 0.8)', size=10, symbol='square'),
+                        name=f'Profitable Periods ({profitable_count})',
+                        showlegend=True,
+                        hoverinfo='skip'
+                    ), row=1, col=1
+                )
+
+            if marginal_count > 0:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[ts['timestamp'].iloc[0]],
+                        y=[ts['high'].iloc[0]],
+                        mode='markers',
+                        marker=dict(color='rgba(241, 196, 15, 0.8)', size=10, symbol='square'),
+                        name=f'Marginal Periods ({marginal_count})',
+                        showlegend=True,
+                        hoverinfo='skip'
+                    ), row=1, col=1
+                )
+
+            if unprofitable_count > 0:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[ts['timestamp'].iloc[0]],
+                        y=[ts['high'].iloc[0]],
+                        mode='markers',
+                        marker=dict(color='rgba(231, 76, 60, 0.8)', size=10, symbol='square'),
+                        name=f'Unprofitable Periods ({unprofitable_count})',
+                        showlegend=True,
+                        hoverinfo='skip'
+                    ), row=1, col=1
+                )
 
     # Enhanced trend line
     if len(ts) >= 5:
@@ -450,70 +640,134 @@ def create_interactive_chart(ts: pd.DataFrame,
             ), row=2, col=1
         )
 
-    # Professional styling - GE Tracker inspired
+    # Enhanced Professional Styling
     fig.update_layout(
         template='plotly_dark',
         title=dict(
-            text=f'<b>{item_name}</b> - Price Chart Analysis',
+            text=f'<b>{item_name}</b> - Real-Time Price Analysis',
             x=0.5,
-            font=dict(size=20, color='white')
+            font=dict(size=22, color='#ffffff', family='Arial Black'),
+            pad=dict(t=20, b=10)
         ),
         height=height,
         width=width,
         hovermode='x unified',
-        margin=dict(t=80, b=50, l=50, r=50),
+        margin=dict(t=90, b=60, l=60, r=60),
+
+        # Enhanced legend styling
         legend=dict(
             orientation='h',
             yanchor='bottom',
             y=1.02,
             xanchor='center',
             x=0.5,
-            bgcolor='rgba(0,0,0,0.5)',
-            bordercolor='rgba(255,255,255,0.2)',
-            borderwidth=1
+            bgcolor='rgba(30, 30, 30, 0.9)',
+            bordercolor='rgba(100, 200, 100, 0.3)',
+            borderwidth=2,
+            font=dict(size=11, color='#ffffff'),
+            itemsizing='constant',
+            itemwidth=40
         ),
-        plot_bgcolor='#1e1e1e',
-        paper_bgcolor='#1e1e1e'
+
+        # Professional dark theme colors
+        plot_bgcolor='#0d1117',  # GitHub dark theme background
+        paper_bgcolor='#0d1117',
+
+        # Enhanced hover styling
+        hoverlabel=dict(
+            bgcolor='rgba(20, 20, 20, 0.9)',
+            bordercolor='rgba(100, 200, 100, 0.8)',
+            font=dict(size=12, color='white', family='Consolas'),
+            align='left'
+        ),
+
+        # Professional font styling
+        font=dict(
+            family='Segoe UI, Arial, sans-serif',
+            size=11,
+            color='#e6edf3'
+        ),
+
+        # Animation settings for smooth interactions
+        transition=dict(
+            duration=300,
+            easing='cubic-in-out'
+        )
     )
 
-    # Enhanced grid and axes styling
+    # Professional Grid and Axis Styling - GE Tracker inspired
     fig.update_xaxes(
         showgrid=True,
-        gridcolor='rgba(128,128,128,0.2)',
-        tickfont=dict(color='white', size=10),
-        title_font=dict(color='white'),
+        gridcolor='rgba(139, 148, 158, 0.15)',  # Subtle grid
+        gridwidth=1,
+        tickfont=dict(color='#e6edf3', size=10, family='Consolas'),
+        title_font=dict(color='#f0f6fc', size=11),
+        showline=True,
+        linecolor='rgba(139, 148, 158, 0.3)',
+        linewidth=1,
+        mirror=True,
+        tickcolor='rgba(139, 148, 158, 0.5)',
         row=2, col=1
     )
 
+    # Main price axis (top chart)
     fig.update_yaxes(
         title_text='Price (gp)',
         row=1, col=1,
         showgrid=True,
-        gridcolor='rgba(128,128,128,0.2)',
-        tickfont=dict(color='white', size=10),
-        title_font=dict(color='white', size=12),
-        tickformat=',.0f'
+        gridcolor='rgba(139, 148, 158, 0.12)',
+        gridwidth=1,
+        tickfont=dict(color='#e6edf3', size=10, family='Consolas'),
+        title_font=dict(color='#f0f6fc', size=12, family='Arial'),
+        tickformat=',.0f',
+        showline=True,
+        linecolor='rgba(139, 148, 158, 0.3)',
+        linewidth=1,
+        mirror=True,
+        tickcolor='rgba(139, 148, 158, 0.5)',
+        zeroline=False,
+        # Add price range indicators
+        tickmode='auto',
+        nticks=8
     )
 
-    # Enhanced volume axis configuration
+    # Volume axis (bottom chart)
     fig.update_yaxes(
         title_text='Trading Volume',
         row=2, col=1,
         showgrid=True,
-        gridcolor='rgba(128,128,128,0.1)',
-        tickfont=dict(color='white', size=10),
-        title_font=dict(color='white', size=12),
+        gridcolor='rgba(139, 148, 158, 0.08)',
+        gridwidth=1,
+        tickfont=dict(color='#e6edf3', size=9, family='Consolas'),
+        title_font=dict(color='#f0f6fc', size=11, family='Arial'),
         tickformat=',.0f',
-        # Add volume-specific formatting
         side='left',
         showline=True,
-        linecolor='rgba(255,255,255,0.2)',
+        linecolor='rgba(139, 148, 158, 0.3)',
+        linewidth=1,
         mirror=True,
-        # Auto-scale based on volume range
+        tickcolor='rgba(139, 148, 158, 0.5)',
         autorange=True,
-        # Add tick labels for volume levels
         tickmode='auto',
-        nticks=5
+        nticks=4,
+        zeroline=True,
+        zerolinecolor='rgba(139, 148, 158, 0.2)',
+        zerolinewidth=1
+    )
+
+    # Enhanced x-axis for main chart
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor='rgba(139, 148, 158, 0.12)',
+        gridwidth=1,
+        tickfont=dict(color='#e6edf3', size=10, family='Consolas'),
+        title_font=dict(color='#f0f6fc', size=11),
+        showline=True,
+        linecolor='rgba(139, 148, 158, 0.3)',
+        linewidth=1,
+        mirror=True,
+        tickcolor='rgba(139, 148, 158, 0.5)',
+        row=1, col=1
     )
 
     # Add secondary y-axis for volume percentage
@@ -545,23 +799,49 @@ def create_interactive_chart(ts: pd.DataFrame,
             )
         )
 
-    # Add range selector buttons
+    # Professional Range Selector - GE Tracker Style
     fig.update_layout(
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
-                    dict(count=1, label="1H", step="hour", stepmode="backward"),
-                    dict(count=6, label="6H", step="hour", stepmode="backward"),
-                    dict(count=1, label="1D", step="day", stepmode="backward"),
-                    dict(count=7, label="7D", step="day", stepmode="backward"),
-                    dict(step="all")
+                    dict(
+                        count=1, label="1H", step="hour", stepmode="backward",
+                        name="1h_button"
+                    ),
+                    dict(
+                        count=6, label="6H", step="hour", stepmode="backward",
+                        name="6h_button"
+                    ),
+                    dict(
+                        count=1, label="1D", step="day", stepmode="backward",
+                        name="1d_button"
+                    ),
+                    dict(
+                        count=7, label="7D", step="day", stepmode="backward",
+                        name="7d_button"
+                    ),
+                    dict(
+                        step="all", label="ALL",
+                        name="all_button"
+                    )
                 ]),
-                bgcolor='rgba(50,50,50,0.8)',
-                bordercolor='rgba(255,255,255,0.2)',
-                font=dict(color='white')
+                bgcolor='rgba(33, 38, 45, 0.9)',
+                activecolor='rgba(100, 200, 100, 0.8)',
+                bordercolor='rgba(139, 148, 158, 0.3)',
+                borderwidth=1,
+                font=dict(color='#e6edf3', size=10, family='Consolas'),
+                x=0.02,
+                y=1.02,
+                xanchor='left',
+                yanchor='bottom'
             ),
-            rangeslider=dict(visible=False),  # Disable range slider for cleaner look
-            type="date"
+            rangeslider=dict(visible=False),
+            type="date",
+            showspikes=True,
+            spikecolor='rgba(100, 200, 100, 0.8)',
+            spikethickness=1,
+            spikedash='solid',
+            spikemode='across'
         )
     )
 
@@ -577,6 +857,7 @@ def create_interactive_chart(ts: pd.DataFrame,
     # Chart statistics and volume insights
     show_chart_statistics(ts, item_name, current_timestep)
     show_volume_insights(ts, item_name)
+    show_fill_area_analysis(ts, item_name)
 
 
 def show_chart_statistics(ts: pd.DataFrame, item_name: str, timestep: str):
@@ -840,3 +1121,117 @@ def show_volume_insights(ts: pd.DataFrame, item_name: str):
             st.info("🚨 Exceptional activity - Possible news/events")
         elif volume_stats['current'] <= volume_stats['min'] * 1.2:
             st.info("😴 Very quiet period - Limited trading")
+
+
+def show_fill_area_analysis(ts: pd.DataFrame, item_name: str):
+    """Display analysis of the price fill areas and profitability periods"""
+
+    if ts.empty:
+        return
+
+    st.markdown("---")
+    st.subheader("🎨 Price Fill Area Analysis")
+
+    # Calculate profitability statistics
+    from utils import calculate_ge_tax
+
+    profitable_periods = 0
+    unprofitable_periods = 0
+    marginal_periods = 0
+    total_profit = 0
+    total_loss = 0
+
+    for i in range(len(ts)):
+        high_price = ts['high'].iloc[i]
+        low_price = ts['low'].iloc[i]
+        ge_tax = calculate_ge_tax(high_price)
+        net_profit = high_price - low_price - ge_tax
+
+        if net_profit > 500:
+            profitable_periods += 1
+            total_profit += net_profit
+        elif net_profit > 0:
+            marginal_periods += 1
+        else:
+            unprofitable_periods += 1
+            total_loss += abs(net_profit)
+
+    total_periods = len(ts)
+
+    # Display statistics
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        profit_pct = (profitable_periods / total_periods * 100) if total_periods > 0 else 0
+        st.metric(
+            label="🟢 Profitable Periods",
+            value=f"{profitable_periods}",
+            delta=f"{profit_pct:.1f}% of time"
+        )
+
+    with col2:
+        marginal_pct = (marginal_periods / total_periods * 100) if total_periods > 0 else 0
+        st.metric(
+            label="🟡 Marginal Periods",
+            value=f"{marginal_periods}",
+            delta=f"{marginal_pct:.1f}% of time"
+        )
+
+    with col3:
+        loss_pct = (unprofitable_periods / total_periods * 100) if total_periods > 0 else 0
+        st.metric(
+            label="🔴 Unprofitable Periods",
+            value=f"{unprofitable_periods}",
+            delta=f"{loss_pct:.1f}% of time"
+        )
+
+    with col4:
+        net_total = total_profit - total_loss
+        st.metric(
+            label="💰 Net Opportunity",
+            value=f"{net_total:,.0f} gp",
+            delta="Total potential" if net_total > 0 else "Net loss risk"
+        )
+
+    # Profitability insights
+    st.subheader("💡 Fill Area Insights")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**🎯 Trading Strategy:**")
+
+        profit_pct = (profitable_periods / total_periods * 100) if total_periods > 0 else 0
+
+        if profit_pct >= 70:
+            st.success("✅ **Excellent Item** - Profitable most of the time")
+        elif profit_pct >= 50:
+            st.info("📊 **Good Item** - More profitable than not")
+        elif profit_pct >= 30:
+            st.warning("⚠️ **Risky Item** - Mixed profitability")
+        else:
+            st.error("❌ **Avoid** - Usually unprofitable")
+
+        # Time-based recommendation
+        if profitable_periods > 0:
+            avg_profit = total_profit / profitable_periods
+            st.write(f"• **Avg profit when profitable:** {avg_profit:,.0f} gp")
+
+        if unprofitable_periods > 0:
+            avg_loss = total_loss / unprofitable_periods
+            st.write(f"• **Avg loss when unprofitable:** {avg_loss:,.0f} gp")
+
+    with col2:
+        st.markdown("**📊 Fill Area Legend:**")
+        st.write("🟢 **Green Areas** - Profitable after tax (>500 gp)")
+        st.write("🟡 **Yellow Areas** - Marginal profit (0-500 gp)")
+        st.write("🔴 **Red Areas** - Unprofitable (loss after tax)")
+        st.write("🎨 **Color Intensity** - Darker = higher profit/loss")
+
+        # Market timing advice
+        if profitable_periods > 0 and unprofitable_periods > 0:
+            st.info("💡 **Timing matters** - Look for green zones to trade")
+        elif profitable_periods == 0:
+            st.warning("⚠️ **High risk item** - Consider avoiding")
+        else:
+            st.success("✅ **Consistent performer** - Good for regular trading")
