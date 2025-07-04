@@ -462,8 +462,20 @@ def show_opportunities_page():
                 status_text.text("📊 Finding opportunities...")
                 progress_bar.progress(70)
 
-                with st.spinner("🎯 Analyzing flipping opportunities..."):
-                    df, name2id = run_flip_scanner(mode)
+                # Enhanced loading for initial scan
+                loading_container = st.empty()
+                loading_container.markdown("""
+                                <div style="text-align: center; padding: 20px;">
+                                    <div class="loading-spinner"></div>
+                                    <p style="color: #4CAF50; margin-top: 10px;">🎯 Analyzing flipping opportunities...</p>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                df, name2id = run_flip_scanner(mode)
+
+                # Clear loading
+                loading_container.empty()
+                df, name2id = run_flip_scanner(mode)
 
                 progress_bar.progress(90)
                 status_text.text("✅ Ready!")
@@ -490,10 +502,22 @@ def show_opportunities_page():
                 st.error(f"❌ Error during initial load: {e}")
         else:
             # Quick load for subsequent visits
-            with st.spinner("🔄 Loading opportunities..."):
-                df, name2id = run_flip_scanner(mode)
-                if 'price_data' not in st.session_state:
-                    st.session_state.price_data = get_real_time_prices()
+            # Create enhanced loading container
+            loading_container = st.empty()
+            loading_container.markdown("""
+                    <div style="text-align: center; padding: 20px;">
+                        <div class="loading-spinner"></div>
+                        <p style="color: #4CAF50; margin-top: 10px;">🔄 Processing data...</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # Process data
+            df, name2id = run_flip_scanner(mode)
+            if 'price_data' not in st.session_state:
+                st.session_state.price_data = get_real_time_prices()
+
+            # Clear loading
+            loading_container.empty()
 
     # Get price data for trend viewer
     price_data = st.session_state.get('price_data', {})
@@ -853,7 +877,12 @@ def show_opportunities_page():
                 cols[11].write(row_data['ge_limit'])
 
         # Pagination controls at the bottom (repeat for convenience)
-        st.markdown("---")
+        st.markdown("""
+        <div class="pagination-container">
+            <div class="pagination-info">📄 Page Navigation</div>
+        </div>
+        """, unsafe_allow_html=True)
+
         col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
 
         with col1:
@@ -867,7 +896,12 @@ def show_opportunities_page():
                 st.rerun()
 
         with col3:
-            st.info(f"📄 Page {st.session_state.current_page + 1} of {total_pages}")
+            st.markdown(f"""
+            <div style="text-align: center; color: #4CAF50; font-weight: 500; padding: 8px;">
+            📄 Page {st.session_state.current_page + 1} of {total_pages} 
+            <span style="color: #bbb;">({start_idx + 1}-{end_idx} of {total_items} items)</span>
+            </div>
+            """, unsafe_allow_html=True)
 
         with col4:
             # Quick jump to first/last page
@@ -945,31 +979,16 @@ def show_opportunities_page():
         if mode == "High Volume":
             st.info(f"🔥 **High Volume Mode**: Showing top {len(df)} highest traded items sorted by volume and profit")
 
-        # Add summary statistics bar
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        with col1:
-            total_items = len(df)
-            st.metric("Total Items", total_items)
-
-        with col2:
-            avg_margin = df['Net Margin'].mean()
-            st.metric("Avg Margin", f"{avg_margin:,.0f} gp")
-
-        with col3:
-            max_margin = df['Net Margin'].max()
-            st.metric("Max Margin", f"{max_margin:,.0f} gp")
-
-        with col4:
-            avg_roi = df['ROI (%)'].mean()
-            st.metric("Avg ROI", f"{avg_roi:.1f}%")
-
-        with col5:
-            total_volume = df['1h Volume'].sum()
-            st.metric("Total Volume/hr", f"{total_volume:,.0f}")
+        # Enhanced metrics display
+        create_enhanced_metrics(df)
 
         # Enhanced Trend viewer
-        st.subheader("📊 Advanced Trend Viewer")
+        st.markdown("""
+        <div class="chart-section">
+            <h2 style="color: #4CAF50; margin-bottom: 20px;">📊 Advanced Trend Viewer</h2>
+            <p style="color: #bbb; margin-bottom: 20px;">Interactive price analysis with real-time data</p>
+        </div>
+        """, unsafe_allow_html=True)
 
         # Search and selection
         col1, col2 = st.columns([2, 1])
@@ -1198,9 +1217,9 @@ def show_opportunities_page():
                                             st.session_state.watchlist = []
                                         if sel not in st.session_state.watchlist:
                                             st.session_state.watchlist.append(sel)
-                                            st.success(f"Added {sel} to watchlist!")
+                                            show_success_message(f"Added {sel} to watchlist!", "⭐")
                                         else:
-                                            st.info(f"{sel} already in watchlist")
+                                            show_warning_message(f"{sel} already in watchlist", "📌")
 
                             else:
                                 st.error("❌ No trend data available for this item")
@@ -1252,7 +1271,7 @@ def show_opportunities_page():
         with col4:
             if st.button("🔄 Clear Alert History"):
                 clear_alert_history()
-                st.success("Alert history cleared!")
+                show_success_message("Alert history cleared!", "🗑️")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1361,8 +1380,9 @@ def show_opportunities_page():
             high_margin_count = len(df[df['Net Margin'] > MIN_MARGIN * 2])
             st.metric("High Margin Items", f"{high_margin_count}")
 
+
     else:
-        st.warning("No flip opportunities found. Try adjusting your filters or enable 'Show All' to see all items.")
+        show_warning_message("No flip opportunities found. Try adjusting your filters or enable 'Show All' to see all items.", "📊")
 
         # Show helpful tips when no results
         st.subheader("💡 Tips to Find More Opportunities")
@@ -1986,6 +2006,112 @@ def inject_custom_css():
             margin: 20px 0 !important;
             color: #dc3545 !important;
         }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            padding: 20px !important;
+            text-align: center !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px) !important;
+            border-color: #4CAF50 !important;
+            box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2) !important;
+        }
+        
+        .metric-value {
+            font-size: 2rem !important;
+            font-weight: bold !important;
+            color: #4CAF50 !important;
+            margin-bottom: 5px !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .metric-label {
+            color: #bbb !important;
+            font-size: 0.9rem !important;
+            font-weight: 400 !important;
+        }
+        
+        .metric-delta {
+            font-size: 0.8rem !important;
+            margin-top: 5px !important;
+        }
+        
+        .metric-delta.positive {
+            color: #27ae60 !important;
+        }
+        
+        .metric-delta.negative {
+            color: #e74c3c !important;
+        }
+        
+        /* Enhanced pagination */
+        .pagination-container {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 10px !important;
+            padding: 15px !important;
+            margin: 20px 0 !important;
+            text-align: center !important;
+        }
+        
+        .pagination-info {
+            color: #4CAF50 !important;
+            font-weight: 500 !important;
+            font-size: 1rem !important;
+        }
+        
+        /* Chart section styling */
+        .chart-section {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            padding: 25px !important;
+            margin-top: 30px !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+        }
+        
+        .chart-controls {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-radius: 8px !important;
+            padding: 15px !important;
+            margin-bottom: 20px !important;
+        }
+        
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block !important;
+            width: 20px !important;
+            height: 20px !important;
+            border: 3px solid rgba(76, 175, 80, 0.3) !important;
+            border-radius: 50% !important;
+            border-top-color: #4CAF50 !important;
+            animation: spin 1s ease-in-out infinite !important;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .metric-value {
+                font-size: 1.5rem !important;
+            }
+            
+            .table-header h2 {
+                font-size: 1.2rem !important;
+            }
+            
+            .metric-card {
+                padding: 15px !important;
+            }
+        }
 
     </style>
     """, unsafe_allow_html=True)
@@ -2066,6 +2192,112 @@ def create_table_header(total_items, avg_margin, avg_risk_util):
         # Calculate safe items count
         safe_items = "📊 Loading..."
         st.metric("Analysis", safe_items)
+
+
+def create_enhanced_metrics(df):
+    """Create beautiful metrics cards with enhanced styling"""
+
+    if df.empty:
+        return
+
+    # Calculate metrics
+    total_items = len(df)
+    avg_margin = df['Net Margin'].mean()
+    max_margin = df['Net Margin'].max()
+    avg_roi = df['ROI (%)'].mean()
+    total_volume = df['1h Volume'].sum()
+
+    # Calculate additional metrics
+    safe_items = len(df[(df.get('Manipulation Score', 0) <= 3) & (df.get('Volatility Score', 0) <= 4)])
+    high_risk_items = len(df[(df.get('Manipulation Score', 10) >= 7) | (df.get('Volatility Score', 10) >= 8)])
+
+    st.markdown("""
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0;">
+    """, unsafe_allow_html=True)
+
+    # Create individual metric cards using columns
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-value">{total_items}</div>
+            <div class="metric-label">Total Opportunities</div>
+            <div class="metric-delta positive">📊 Active</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-value">{avg_margin:,.0f}</div>
+            <div class="metric-label">Avg Margin (gp)</div>
+            <div class="metric-delta positive">💰 Profit</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-value">{avg_roi:.1f}%</div>
+            <div class="metric-label">Avg ROI</div>
+            <div class="metric-delta positive">📈 Returns</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-value">{safe_items}</div>
+            <div class="metric-label">Safe Items</div>
+            <div class="metric-delta positive">🛡️ Low Risk</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col5:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-value">{total_volume:,.0f}</div>
+            <div class="metric-label">Total Volume/hr</div>
+            <div class="metric-delta positive">🔄 Liquidity</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+def show_success_message(message, icon="✅"):
+    """Show a beautiful success message"""
+    st.markdown(f"""
+    <div style="
+        background: rgba(40, 167, 69, 0.1);
+        border: 1px solid rgba(40, 167, 69, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        color: #28a745;
+        text-align: center;
+        font-weight: 500;
+    ">
+        {icon} {message}
+    </div>
+    """, unsafe_allow_html=True)
+
+def show_warning_message(message, icon="⚠️"):
+    """Show a beautiful warning message"""
+    st.markdown(f"""
+    <div style="
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        color: #ffc107;
+        text-align: center;
+        font-weight: 500;
+    ">
+        {icon} {message}
+    </div>
+    """, unsafe_allow_html=True)
 
 # Streamlit UI
 def streamlit_dashboard():
