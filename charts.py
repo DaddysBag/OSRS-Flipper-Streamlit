@@ -344,31 +344,111 @@ def create_interactive_chart(ts: pd.DataFrame,
             )
         ]
 
-    # Enhanced volume bars with color coding
-    volume_colors = []
-    avg_volume = ts['volume'].mean()
+    # Enhanced Volume Visualization
+    if not ts.empty:
+        # Calculate volume statistics for better color coding
+        volume_stats = {
+            'min': ts['volume'].min(),
+            'max': ts['volume'].max(),
+            'mean': ts['volume'].mean(),
+            'median': ts['volume'].median(),
+            'q75': ts['volume'].quantile(0.75),
+            'q25': ts['volume'].quantile(0.25)
+        }
 
-    for vol in ts['volume']:
-        if vol > avg_volume * 1.5:
-            volume_colors.append('#e74c3c')  # High volume - red
-        elif vol > avg_volume:
-            volume_colors.append('#f39c12')  # Above average - orange
-        else:
-            volume_colors.append('#3498db')  # Normal - blue
+        # Create sophisticated color mapping
+        volume_colors = []
+        volume_intensities = []
+        volume_labels = []
 
-    fig.add_trace(
-        go.Bar(
-            x=ts['timestamp'],
-            y=ts['volume'],
-            name='Volume',
-            marker=dict(color=volume_colors, opacity=0.7),
-            hovertemplate='<b>Volume</b><br>' +
-                          'Volume: %{y:,.0f}<br>' +
-                          'Time: %{x|%b %d, %H:%M}<br>' +
-                          '<extra></extra>',
-            yaxis='y2'
-        ), row=2, col=1
-    )
+        for vol in ts['volume']:
+            # Calculate volume intensity (0-1 scale)
+            if volume_stats['max'] > volume_stats['min']:
+                intensity = (vol - volume_stats['min']) / (volume_stats['max'] - volume_stats['min'])
+            else:
+                intensity = 0.5
+
+            # Color coding based on volume levels
+            if vol >= volume_stats['q75']:
+                if vol >= volume_stats['max'] * 0.8:
+                    color = '#c0392b'  # Very high - dark red
+                    label = 'Very High'
+                else:
+                    color = '#e74c3c'  # High - red
+                    label = 'High'
+            elif vol >= volume_stats['median']:
+                color = '#f39c12'  # Above median - orange
+                label = 'Above Average'
+            elif vol >= volume_stats['q25']:
+                color = '#3498db'  # Normal - blue
+                label = 'Normal'
+            else:
+                color = '#95a5a6'  # Low - gray
+                label = 'Low'
+
+            volume_colors.append(color)
+            volume_intensities.append(intensity)
+            volume_labels.append(label)
+
+        # Add volume percentage indicators
+        volume_percentages = []
+        if volume_stats['max'] > 0:
+            volume_percentages = [(vol / volume_stats['max']) * 100 for vol in ts['volume']]
+
+        # Enhanced volume bars with better styling
+        fig.add_trace(
+            go.Bar(
+                x=ts['timestamp'],
+                y=ts['volume'],
+                name='Trading Volume',
+                marker=dict(
+                    color=volume_colors,
+                    opacity=0.8,
+                    line=dict(width=0.5, color='rgba(255,255,255,0.1)')
+                ),
+                customdata=list(zip(volume_labels, volume_percentages)),
+                hovertemplate='<b>Trading Volume</b><br>' +
+                              'Volume: %{y:,.0f}<br>' +
+                              'Level: %{customdata[0]}<br>' +
+                              'Relative: %{customdata[1]:.1f}% of max<br>' +
+                              'Time: %{x|%b %d, %H:%M}<br>' +
+                              '<extra></extra>',
+                width=None  # Auto-width based on data density
+            ), row=2, col=1
+        )
+
+        # Add volume trend line
+        if len(ts) >= 5:
+            volume_trend_window = max(3, len(ts) // 8)
+            volume_trend = ts['volume'].rolling(window=volume_trend_window, min_periods=1).mean()
+
+            fig.add_trace(
+                go.Scatter(
+                    x=ts['timestamp'],
+                    y=volume_trend,
+                    mode='lines',
+                    name='Volume Trend',
+                    line=dict(color='#9b59b6', width=2, dash='dash'),
+                    opacity=0.8,
+                    hovertemplate='<b>Volume Trend</b><br>' +
+                                  'Avg Volume: %{y:,.0f}<br>' +
+                                  'Time: %{x|%b %d, %H:%M}<br>' +
+                                  '<extra></extra>'
+                ), row=2, col=1
+            )
+
+        # Add volume threshold lines
+        fig.add_trace(
+            go.Scatter(
+                x=[ts['timestamp'].min(), ts['timestamp'].max()],
+                y=[volume_stats['mean'], volume_stats['mean']],
+                mode='lines',
+                name=f"Avg Volume: {volume_stats['mean']:,.0f}",
+                line=dict(color='rgba(155, 89, 182, 0.5)', width=1, dash='dot'),
+                hovertemplate=f"Average Volume: {volume_stats['mean']:,.0f}<extra></extra>",
+                showlegend=False
+            ), row=2, col=1
+        )
 
     # Professional styling - GE Tracker inspired
     fig.update_layout(
@@ -415,15 +495,55 @@ def create_interactive_chart(ts: pd.DataFrame,
         tickformat=',.0f'
     )
 
+    # Enhanced volume axis configuration
     fig.update_yaxes(
-        title_text='Volume',
+        title_text='Trading Volume',
         row=2, col=1,
         showgrid=True,
         gridcolor='rgba(128,128,128,0.1)',
         tickfont=dict(color='white', size=10),
         title_font=dict(color='white', size=12),
-        tickformat=',.0f'
+        tickformat=',.0f',
+        # Add volume-specific formatting
+        side='left',
+        showline=True,
+        linecolor='rgba(255,255,255,0.2)',
+        mirror=True,
+        # Auto-scale based on volume range
+        autorange=True,
+        # Add tick labels for volume levels
+        tickmode='auto',
+        nticks=5
     )
+
+    # Add secondary y-axis for volume percentage
+    if not ts.empty and volume_stats['max'] > 0:
+        # Add percentage scale on right side
+        fig.add_trace(
+            go.Scatter(
+                x=[ts['timestamp'].min()],
+                y=[0],
+                mode='markers',
+                marker=dict(opacity=0),
+                showlegend=False,
+                yaxis='y3'
+            ), row=2, col=1
+        )
+
+        # Configure secondary volume axis
+        fig.update_layout(
+            yaxis3=dict(
+                title='Volume %',
+                titlefont=dict(color='white', size=10),
+                tickfont=dict(color='white', size=8),
+                side='right',
+                overlaying='y2',
+                showgrid=False,
+                range=[0, 100],
+                ticksuffix='%',
+                position=0.99
+            )
+        )
 
     # Add range selector buttons
     fig.update_layout(
@@ -454,8 +574,9 @@ def create_interactive_chart(ts: pd.DataFrame,
     # Reference line information panel
     show_reference_info(ts, item_name)
 
-    # Chart statistics below
+    # Chart statistics and volume insights
     show_chart_statistics(ts, item_name, current_timestep)
+    show_volume_insights(ts, item_name)
 
 
 def show_chart_statistics(ts: pd.DataFrame, item_name: str, timestep: str):
@@ -493,11 +614,24 @@ def show_chart_statistics(ts: pd.DataFrame, item_name: str, timestep: str):
         )
 
     with col3:
+        # Enhanced volume analysis
+        volume_trend_direction = "📈" if ts['volume'].iloc[-1] > avg_volume else "📉"
+        volume_change_pct = ((ts['volume'].iloc[-1] - avg_volume) / avg_volume * 100) if avg_volume > 0 else 0
+
         st.metric(
-            label="📊 Total Volume",
-            value=f"{total_volume:,.0f}",
-            delta=f"Avg: {avg_volume:,.0f}"
+            label="📊 Current Volume",
+            value=f"{ts['volume'].iloc[-1]:,.0f}",
+            delta=f"{volume_change_pct:+.1f}% vs avg",
+            delta_color="normal" if volume_change_pct > 0 else "inverse"
         )
+
+        # Volume level indicator
+        if ts['volume'].iloc[-1] >= ts['volume'].quantile(0.75):
+            st.caption("🔥 High Volume Period")
+        elif ts['volume'].iloc[-1] >= ts['volume'].median():
+            st.caption("📊 Normal Volume")
+        else:
+            st.caption("💤 Low Volume Period")
 
     with col4:
         volatility = (ts['high'].std() / ts['high'].mean()) * 100 if ts['high'].mean() > 0 else 0
@@ -621,3 +755,88 @@ def show_reference_info(ts: pd.DataFrame, item_name: str):
         current_volume = ts['volume'].iloc[-1]
         vol_status = "🔥 High" if current_volume > avg_volume * 1.5 else "📊 Normal" if current_volume > avg_volume * 0.5 else "💤 Low"
         st.write(f"• **Volume Status:** {vol_status}")
+
+
+def show_volume_insights(ts: pd.DataFrame, item_name: str):
+    """Display detailed volume analysis and insights"""
+
+    if ts.empty:
+        return
+
+    st.markdown("---")
+    st.subheader("📊 Volume Analysis")
+
+    # Calculate volume metrics
+    volume_stats = {
+        'current': ts['volume'].iloc[-1],
+        'max': ts['volume'].max(),
+        'min': ts['volume'].min(),
+        'mean': ts['volume'].mean(),
+        'median': ts['volume'].median(),
+        'std': ts['volume'].std()
+    }
+
+    # Volume distribution analysis
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("**📈 Volume Levels**")
+
+        # Volume percentile
+        current_percentile = (ts['volume'] <= volume_stats['current']).mean() * 100
+
+        if current_percentile >= 80:
+            level_desc = "🔥 Very High"
+            level_color = "red"
+        elif current_percentile >= 60:
+            level_desc = "📈 High"
+            level_color = "orange"
+        elif current_percentile >= 40:
+            level_desc = "📊 Normal"
+            level_color = "blue"
+        else:
+            level_desc = "💤 Low"
+            level_color = "gray"
+
+        st.metric("Current Level", level_desc)
+        st.write(f"**Percentile:** {current_percentile:.0f}th")
+        st.write(f"**vs Average:** {((volume_stats['current'] / volume_stats['mean'] - 1) * 100):+.1f}%")
+
+    with col2:
+        st.markdown("**⏰ Volume Patterns**")
+
+        # Time-based volume analysis
+        if len(ts) >= 24:  # If we have enough data points
+            ts_hourly = ts.copy()
+            ts_hourly['hour'] = ts_hourly['timestamp'].dt.hour
+            hourly_avg = ts_hourly.groupby('hour')['volume'].mean()
+
+            if not hourly_avg.empty:
+                peak_hour = hourly_avg.idxmax()
+                low_hour = hourly_avg.idxmin()
+
+                st.write(f"**Peak Hour:** {peak_hour}:00")
+                st.write(f"**Quiet Hour:** {low_hour}:00")
+                st.write(f"**Peak Volume:** {hourly_avg.max():,.0f}")
+
+        # Volume volatility
+        cv = (volume_stats['std'] / volume_stats['mean']) if volume_stats['mean'] > 0 else 0
+        vol_stability = "Stable" if cv < 0.5 else "Moderate" if cv < 1.0 else "Volatile"
+        st.write(f"**Stability:** {vol_stability}")
+
+    with col3:
+        st.markdown("**💡 Trading Insights**")
+
+        # Volume-based recommendations
+        if volume_stats['current'] >= volume_stats['mean'] * 1.5:
+            st.success("✅ High liquidity - Good for large trades")
+        elif volume_stats['current'] >= volume_stats['mean'] * 0.5:
+            st.info("📊 Normal liquidity - Standard trading")
+        else:
+            st.warning("⚠️ Low liquidity - Use smaller trade sizes")
+
+        # Market activity assessment
+        if volume_stats['current'] >= volume_stats['max'] * 0.8:
+            st.info("🚨 Exceptional activity - Possible news/events")
+        elif volume_stats['current'] <= volume_stats['min'] * 1.2:
+            st.info("😴 Very quiet period - Limited trading")
