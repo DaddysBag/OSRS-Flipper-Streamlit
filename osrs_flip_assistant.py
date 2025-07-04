@@ -217,6 +217,12 @@ def streamlit_dashboard():
         st.session_state.manipulation_th = 7
     if 'volatility_th' not in st.session_state:
         st.session_state.volatility_th = 8
+    if 'volatility_th' not in st.session_state:
+        st.session_state.volatility_th = 8
+    if 'show_chart_page' not in st.session_state:
+        st.session_state.show_chart_page = False
+    if 'selected_item' not in st.session_state:
+        st.session_state.selected_item = None
 
     st.session_state['min_margin'] = MIN_MARGIN
     st.session_state['min_volume'] = MIN_VOLUME
@@ -517,14 +523,30 @@ def streamlit_dashboard():
         }
         
         # Display with proper numerical sorting
-        st.dataframe(
+        selected_rows = st.dataframe(
             final_display_df,
             use_container_width=True,
             key="properly_sorted_flip_table",
             height=600,
             hide_index=True,
-            column_config=column_config
-        )   
+            column_config=column_config,
+            on_select="rerun",
+            selection_mode="single-row"
+        )
+
+        # Handle item selection
+        if selected_rows['selection']['rows']:
+            selected_idx = selected_rows['selection']['rows'][0]
+            selected_item = final_display_df.iloc[selected_idx]['Item']
+
+            st.session_state['selected_item'] = selected_item
+            st.session_state['show_item_detail'] = True
+
+            st.success(f"📊 Selected: {selected_item}")
+
+            if st.button(f"🔍 View {selected_item} Chart", type="primary"):
+                st.session_state['show_chart_page'] = True
+                st.rerun()
         
         # Mode-specific information
         if mode == "High Volume":
