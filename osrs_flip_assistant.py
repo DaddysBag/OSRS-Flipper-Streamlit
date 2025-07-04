@@ -556,6 +556,49 @@ def show_opportunities_page():
         avg_risk_util = df['Risk Adjusted Utility'].mean() if 'Risk Adjusted Utility' in df.columns else 0
         create_table_header(len(df), avg_margin, avg_risk_util)
 
+        if not df.empty:
+            # Add advanced features
+            st.markdown("---")
+
+            # Advanced search and filtering
+            search_term, category_filter, sort_option = create_advanced_search()
+
+            # Apply advanced filters
+            filtered_df = df.copy()
+
+            if search_term:
+                filtered_df = filtered_df[filtered_df['Item'].str.contains(search_term, case=False, na=False)]
+
+            if category_filter != "All Categories":
+                filtered_df = filtered_df[filtered_df['Category'] == category_filter]
+
+            # Apply sorting
+            if sort_option == "Profit Margin":
+                filtered_df = filtered_df.sort_values('Net Margin', ascending=False)
+            elif sort_option == "ROI %":
+                filtered_df = filtered_df.sort_values('ROI (%)', ascending=False)
+            elif sort_option == "Volume":
+                filtered_df = filtered_df.sort_values('1h Volume', ascending=False)
+            elif sort_option == "Risk Score":
+                filtered_df = filtered_df.sort_values('Risk Adjusted Utility', ascending=False)
+            elif sort_option == "Item Name":
+                filtered_df = filtered_df.sort_values('Item')
+
+            # Update df to use filtered version
+            df = filtered_df
+
+            if df.empty:
+                show_warning_message("No items match your search criteria. Try adjusting your filters.")
+                return
+
+            # Profit Calculator
+            create_profit_calculator()
+
+            # Create enhanced table header
+            avg_margin = df['Net Margin'].mean()
+            avg_risk_util = df['Risk Adjusted Utility'].mean() if 'Risk Adjusted Utility' in df.columns else 0
+            create_table_header(len(df), avg_margin, avg_risk_util)
+
         # Add color coding explanation
         col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -1036,8 +1079,11 @@ def show_opportunities_page():
         if mode == "High Volume":
             st.info(f"🔥 **High Volume Mode**: Showing top {len(df)} highest traded items sorted by volume and profit")
 
-        # Enhanced metrics display
-        create_enhanced_metrics(df)
+        # Export options
+        create_export_options(df)
+
+        # Watchlist management
+        create_watchlist_manager()
 
         # Enhanced Trend viewer
         st.markdown("""
@@ -2581,7 +2627,6 @@ def create_enhanced_header():
         else:
             st.warning(alert_status)
 
-
 def create_table_header(total_items, avg_margin, avg_risk_util):
     """Create enhanced table header with summary info"""
 
@@ -2610,7 +2655,6 @@ def create_table_header(total_items, avg_margin, avg_risk_util):
         # Calculate safe items count
         safe_items = "📊 Loading..."
         st.metric("Analysis", safe_items)
-
 
 def create_enhanced_metrics(df):
     """Create beautiful metrics cards with enhanced styling"""
@@ -2702,7 +2746,6 @@ def show_error_message(message, icon="❌", details=None):
     </div>
     """, unsafe_allow_html=True)
 
-
 def show_info_message(message, icon="ℹ️"):
     """Show a beautiful info message"""
     st.markdown(f"""
@@ -2719,7 +2762,6 @@ def show_info_message(message, icon="ℹ️"):
         {icon} {message}
     </div>
     """, unsafe_allow_html=True)
-
 
 def create_performance_monitor():
     """Create a performance monitoring badge"""
@@ -2758,6 +2800,218 @@ def add_copy_functionality():
         }
     </script>
     """, unsafe_allow_html=True)
+
+def create_advanced_search():
+    """Create advanced search and filtering interface"""
+
+    st.markdown("""
+    <div style="
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+    ">
+        <h3 style="color: #4CAF50; margin-bottom: 15px;">🔍 Advanced Item Search</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Create search interface
+    col1, col2, col3 = st.columns([2, 1, 1])
+
+    with col1:
+        search_term = st.text_input(
+            "Search Items",
+            placeholder="Enter item name, category, or ID...",
+            help="Search for specific items by name",
+            key="advanced_search"
+        )
+
+    with col2:
+        category_filter = st.selectbox(
+            "Category Filter",
+            ["All Categories", "Raw Materials", "Consumables", "Runes & Ammo", "Gear & Weapons", "Other"],
+            help="Filter by item category"
+        )
+
+    with col3:
+        sort_option = st.selectbox(
+            "Sort By",
+            ["Profit Margin", "ROI %", "Volume", "Risk Score", "Item Name"],
+            help="Choose how to sort results"
+        )
+
+    return search_term, category_filter, sort_option
+
+def create_profit_calculator():
+    """Create a profit calculator widget"""
+
+    st.markdown("""
+    <div style="
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+    ">
+        <h3 style="color: #4CAF50; margin-bottom: 15px;">💰 Quick Profit Calculator</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        buy_price = st.number_input("Buy Price (gp)", min_value=1, value=1000, step=1)
+
+    with col2:
+        sell_price = st.number_input("Sell Price (gp)", min_value=1, value=1100, step=1)
+
+    with col3:
+        quantity = st.number_input("Quantity", min_value=1, value=100, step=1)
+
+    with col4:
+        st.write("")  # Spacer
+        if st.button("Calculate Profit", use_container_width=True):
+            from utils import calculate_ge_tax
+
+            tax = calculate_ge_tax(sell_price)
+            net_profit_per_item = sell_price - buy_price - tax
+            total_profit = net_profit_per_item * quantity
+            roi = (net_profit_per_item / buy_price) * 100 if buy_price > 0 else 0
+
+            # Display results
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                st.metric("Net Profit/Item", f"{net_profit_per_item:,} gp")
+            with col_b:
+                st.metric("Total Profit", f"{total_profit:,} gp")
+            with col_c:
+                st.metric("ROI", f"{roi:.1f}%")
+
+            # Profit assessment
+            if roi >= 5:
+                show_success_message(f"🟢 Excellent opportunity! {roi:.1f}% ROI")
+            elif roi >= 2:
+                show_info_message(f"🟡 Good opportunity! {roi:.1f}% ROI")
+            else:
+                show_warning_message(f"🔴 Low profit margin - {roi:.1f}% ROI")
+
+def create_watchlist_manager():
+    """Create advanced watchlist management"""
+
+    if 'watchlist' not in st.session_state:
+        st.session_state.watchlist = []
+
+    st.markdown("""
+    <div style="
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+    ">
+        <h3 style="color: #4CAF50; margin-bottom: 15px;">⭐ Watchlist Manager</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.session_state.watchlist:
+        st.write(f"**📋 Watching {len(st.session_state.watchlist)} items:**")
+
+        # Display watchlist in a nice format
+        for i, item in enumerate(st.session_state.watchlist):
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.write(f"• {item}")
+            with col2:
+                if st.button("❌", key=f"remove_watch_{i}", help=f"Remove {item}"):
+                    st.session_state.watchlist.remove(item)
+                    st.rerun()
+
+        # Clear all button
+        if st.button("🗑️ Clear All Watchlist", type="secondary"):
+            st.session_state.watchlist = []
+            show_success_message("Watchlist cleared!")
+            st.rerun()
+    else:
+        st.info("📝 No items in watchlist. Click ⭐ Watch buttons to add items!")
+
+    return st.session_state.watchlist
+
+def create_export_options(df):
+    """Create advanced export options"""
+
+    if df.empty:
+        return
+
+    st.markdown("""
+    <div style="
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+    ">
+        <h3 style="color: #4CAF50; margin-bottom: 15px;">📥 Export Options</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        # CSV Export
+        csv_data = df.to_csv(index=False)
+        st.download_button(
+            label="📊 Export CSV",
+            data=csv_data,
+            file_name=f"osrs_opportunities_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            help="Download as Excel-compatible CSV",
+            use_container_width=True
+        )
+
+    with col2:
+        # JSON Export
+        json_data = df.to_json(orient='records', indent=2)
+        st.download_button(
+            label="📋 Export JSON",
+            data=json_data,
+            file_name=f"osrs_opportunities_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.json",
+            mime="application/json",
+            help="Download as JSON for API use",
+            use_container_width=True
+        )
+
+    with col3:
+        # Top 10 Export
+        top_10 = df.head(10)
+        top_10_csv = top_10.to_csv(index=False)
+        st.download_button(
+            label="🏆 Top 10 CSV",
+            data=top_10_csv,
+            file_name=f"osrs_top_10_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            help="Download top 10 opportunities",
+            use_container_width=True
+        )
+
+    with col4:
+        # Watchlist Export
+        if st.session_state.get('watchlist'):
+            watchlist_df = df[df['Item'].isin(st.session_state.watchlist)]
+            if not watchlist_df.empty:
+                watchlist_csv = watchlist_df.to_csv(index=False)
+                st.download_button(
+                    label="⭐ Watchlist CSV",
+                    data=watchlist_csv,
+                    file_name=f"osrs_watchlist_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                    mime="text/csv",
+                    help="Download watchlist items",
+                    use_container_width=True
+                )
+            else:
+                st.button("⭐ Watchlist CSV", disabled=True, help="No watchlist items in current results")
+        else:
+            st.button("⭐ Watchlist CSV", disabled=True, help="Watchlist is empty")
 
 def show_success_message(message, icon="✅"):
     """Show a beautiful success message"""
