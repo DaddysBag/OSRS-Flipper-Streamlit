@@ -616,43 +616,6 @@ def show_opportunities_page():
         start_idx = st.session_state.current_page * items_per_page
         end_idx = min(start_idx + items_per_page, total_items)
 
-        # Pagination controls at the top
-        col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-
-        with col1:
-            if st.button("⬅️ Previous", disabled=st.session_state.current_page == 0):
-                st.session_state.current_page = max(0, st.session_state.current_page - 1)
-                st.rerun()
-
-        with col2:
-            if st.button("➡️ Next", disabled=st.session_state.current_page >= total_pages - 1):
-                st.session_state.current_page = min(total_pages - 1, st.session_state.current_page + 1)
-                st.rerun()
-
-        with col3:
-            st.info(
-                f"📄 Page {st.session_state.current_page + 1} of {total_pages} | Items {start_idx + 1}-{end_idx} of {total_items}")
-
-        with col4:
-            # Jump to page
-            page_num = st.selectbox("Jump to page:", range(1, total_pages + 1),
-                                    index=st.session_state.current_page,
-                                    key="page_selector")
-            if page_num - 1 != st.session_state.current_page:
-                st.session_state.current_page = page_num - 1
-                st.rerun()
-
-        with col5:
-            # Items per page selector
-            new_items_per_page = st.selectbox("Items per page:", [10, 25, 50, 100],
-                                              index=1, key="items_per_page_selector")
-            if new_items_per_page != items_per_page:
-                # Recalculate current page to maintain position
-                current_item = st.session_state.current_page * items_per_page
-                st.session_state.current_page = current_item // new_items_per_page
-                items_per_page = new_items_per_page
-                st.rerun()
-
         # Add CSS for styling
         st.markdown("""
         <style>
