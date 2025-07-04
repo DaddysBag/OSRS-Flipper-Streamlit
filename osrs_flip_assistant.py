@@ -504,14 +504,63 @@ def show_opportunities_page():
             )
         }
 
-        # Custom table with clickable item names (GE Tracker style)
+        # Custom table with clickable item names + Pagination
         st.markdown("### 🔍 Top Flip Opportunities")
         st.caption("💡 Click any item name to view its chart")
 
-        # Add CSS to make buttons look like table cells
+        # Pagination controls
+        total_items = len(final_display_df)
+        items_per_page = 25
+
+        # Initialize pagination state
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 0
+
+        # Calculate pagination info
+        total_pages = (total_items + items_per_page - 1) // items_per_page  # Ceiling division
+        start_idx = st.session_state.current_page * items_per_page
+        end_idx = min(start_idx + items_per_page, total_items)
+
+        # Pagination controls at the top
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+
+        with col1:
+            if st.button("⬅️ Previous", disabled=st.session_state.current_page == 0):
+                st.session_state.current_page = max(0, st.session_state.current_page - 1)
+                st.rerun()
+
+        with col2:
+            if st.button("➡️ Next", disabled=st.session_state.current_page >= total_pages - 1):
+                st.session_state.current_page = min(total_pages - 1, st.session_state.current_page + 1)
+                st.rerun()
+
+        with col3:
+            st.info(
+                f"📄 Page {st.session_state.current_page + 1} of {total_pages} | Items {start_idx + 1}-{end_idx} of {total_items}")
+
+        with col4:
+            # Jump to page
+            page_num = st.selectbox("Jump to page:", range(1, total_pages + 1),
+                                    index=st.session_state.current_page,
+                                    key="page_selector")
+            if page_num - 1 != st.session_state.current_page:
+                st.session_state.current_page = page_num - 1
+                st.rerun()
+
+        with col5:
+            # Items per page selector
+            new_items_per_page = st.selectbox("Items per page:", [10, 25, 50, 100],
+                                              index=1, key="items_per_page_selector")
+            if new_items_per_page != items_per_page:
+                # Recalculate current page to maintain position
+                current_item = st.session_state.current_page * items_per_page
+                st.session_state.current_page = current_item // new_items_per_page
+                items_per_page = new_items_per_page
+                st.rerun()
+
+        # Add CSS for styling
         st.markdown("""
         <style>
-        /* Make item name buttons look like clickable links in a table */
         .item-name-btn {
             background: none !important;
             border: none !important;
@@ -538,6 +587,61 @@ def show_opportunities_page():
         </style>
         """, unsafe_allow_html=True)
 
+        # Alternative: Show All button
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            if st.button("📋 Show All in Table", help="Show all items in a scrollable table"):
+                st.session_state['show_all_table'] = True
+                st.rerun()
+
+        # Check if user wants to see all items in a regular table
+        if st.session_state.get('show_all_table', False):
+            st.markdown("---")
+            st.subheader("📊 All Items - Scrollable Table")
+
+            # Show regular dataframe with all items
+            st.dataframe(
+                final_display_df,
+                use_container_width=True,
+                key="all_items_table",
+                height=600,
+                hide_index=True,
+                column_config=column_config
+            )
+
+            # Quick chart access below full table
+            st.markdown("---")
+            st.subheader("📈 Quick Chart Access")
+
+            # Search for specific item
+            search_item = st.text_input("🔍 Search for item to chart:",
+                                        placeholder="Type exact item name...",
+                                        key="full_table_search")
+
+            if search_item:
+                matching_items = final_display_df[
+                    final_display_df['Item'].str.contains(search_item, case=False, na=False)]
+                if not matching_items.empty:
+                    for _, row in matching_items.head(5).iterrows():
+                        if st.button(f"📊 {row['Item']}",
+                                     key=f"full_search_{row['Item']}",
+                                     help=f"Chart for {row['Item']}"):
+                            st.session_state['selected_item'] = row['Item']
+                            st.session_state.page = 'charts'
+                            st.rerun()
+                else:
+                    st.warning("No items found matching your search.")
+
+            # Back to paginated view
+            if st.button("📄 Back to Paginated View"):
+                st.session_state['show_all_table'] = False
+                st.rerun()
+
+            return  # Skip the paginated table if showing all
+
+        # Get current page items
+        current_page_items = final_display_df.iloc[start_idx:end_idx]
+
         # Create table header
         header_cols = st.columns([0.4, 2, 1, 1, 1.2, 1, 1, 1.5, 1.2, 1.2, 1.2, 1.2])
         headers = ['Status', 'Item Name', 'Buy Price', 'Sell Price', 'Net Margin', 'ROI (%)',
@@ -549,8 +653,8 @@ def show_opportunities_page():
 
         st.markdown("---")
 
-        # Create table rows with clickable item names
-        for idx, (_, row) in enumerate(final_display_df.head(25).iterrows()):  # Limit to 25 for performance
+        # Create table rows for current page
+        for idx, (_, row) in enumerate(current_page_items.iterrows()):
             with st.container():
                 cols = st.columns([0.4, 2, 1, 1, 1.2, 1, 1, 1.5, 1.2, 1.2, 1.2, 1.2])
 
@@ -561,7 +665,7 @@ def show_opportunities_page():
                     item_name = row['Item']
                     if st.button(
                             item_name,
-                            key=f"item_click_{idx}_{hash(item_name)}",  # Use hash to avoid key conflicts
+                            key=f"item_page_{st.session_state.current_page}_idx_{idx}_{hash(item_name)}",
                             help=f"Click to view {item_name} chart",
                             use_container_width=True
                     ):
@@ -604,10 +708,34 @@ def show_opportunities_page():
                 with cols[11]:  # GE Limit
                     st.write(row['GE Limit'])
 
-        # Show count of items
-        if len(final_display_df) > 25:
-            st.info(
-                f"📋 Showing top 25 of {len(final_display_df)} items for performance. Use filters to narrow results.")
+        # Pagination controls at the bottom (repeat for convenience)
+        st.markdown("---")
+        col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
+
+        with col1:
+            if st.button("⬅️ Prev", disabled=st.session_state.current_page == 0, key="bottom_prev"):
+                st.session_state.current_page = max(0, st.session_state.current_page - 1)
+                st.rerun()
+
+        with col2:
+            if st.button("➡️ Next", disabled=st.session_state.current_page >= total_pages - 1, key="bottom_next"):
+                st.session_state.current_page = min(total_pages - 1, st.session_state.current_page + 1)
+                st.rerun()
+
+        with col3:
+            st.info(f"📄 Page {st.session_state.current_page + 1} of {total_pages}")
+
+        with col4:
+            # Quick jump to first/last page
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("⏮️ First", disabled=st.session_state.current_page == 0):
+                    st.session_state.current_page = 0
+                    st.rerun()
+            with col_b:
+                if st.button("⏭️ Last", disabled=st.session_state.current_page >= total_pages - 1):
+                    st.session_state.current_page = total_pages - 1
+                    st.rerun()
 
         # Enhanced item chart navigation
         st.subheader("📊 Quick Chart Access")
