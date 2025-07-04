@@ -699,7 +699,7 @@ def create_interactive_chart(ts: pd.DataFrame,
     fig.update_layout(
         # Enhanced zoom and pan
         dragmode='zoom',
-        selectdirection='diagonal',
+        selectdirection='d',
 
         # Crosshair cursor configuration
         hovermode='x unified',
