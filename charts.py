@@ -231,6 +231,119 @@ def create_interactive_chart(ts: pd.DataFrame,
             ), row=1, col=1
         )
 
+    # Reference Lines - Current Market Prices
+    if not ts.empty:
+        # Get current prices (most recent data point)
+        current_high = ts['high'].iloc[-1]  # Current sell price
+        current_low = ts['low'].iloc[-1]  # Current buy price
+
+        # Calculate break-even price (buy price + GE tax)
+        from utils import calculate_ge_tax
+        ge_tax = calculate_ge_tax(current_high)
+        break_even_price = current_low + ge_tax
+
+        # Add reference lines across the entire time range
+        time_range = [ts['timestamp'].min(), ts['timestamp'].max()]
+
+        # Current Sell Price Line (Red)
+        fig.add_trace(
+            go.Scatter(
+                x=time_range,
+                y=[current_high, current_high],
+                mode='lines',
+                name=f'Current Sell: {current_high:,.0f} gp',
+                line=dict(color='#e74c3c', width=2, dash='dot'),
+                opacity=0.8,
+                hovertemplate=f'<b>Current Sell Price</b><br>{current_high:,.0f} gp<extra></extra>',
+                showlegend=True
+            ), row=1, col=1
+        )
+
+        # Current Buy Price Line (Green)
+        fig.add_trace(
+            go.Scatter(
+                x=time_range,
+                y=[current_low, current_low],
+                mode='lines',
+                name=f'Current Buy: {current_low:,.0f} gp',
+                line=dict(color='#27ae60', width=2, dash='dot'),
+                opacity=0.8,
+                hovertemplate=f'<b>Current Buy Price</b><br>{current_low:,.0f} gp<extra></extra>',
+                showlegend=True
+            ), row=1, col=1
+        )
+
+        # Break-Even Price Line (Orange/Yellow)
+        fig.add_trace(
+            go.Scatter(
+                x=time_range,
+                y=[break_even_price, break_even_price],
+                mode='lines',
+                name=f'Break-Even: {break_even_price:,.0f} gp',
+                line=dict(color='#f39c12', width=2, dash='dashdot'),
+                opacity=0.7,
+                hovertemplate=f'<b>Break-Even Price</b><br>{break_even_price:,.0f} gp<br>(Buy + Tax)<extra></extra>',
+                showlegend=True
+            ), row=1, col=1
+        )
+
+        # Add profit zone fill (between buy and sell)
+        fig.add_trace(
+            go.Scatter(
+                x=time_range + time_range[::-1],
+                y=[current_low, current_low, current_high, current_high],
+                fill='toself',
+                fillcolor='rgba(46, 204, 113, 0.1)',  # Light green profit zone
+                line=dict(color='rgba(255,255,255,0)'),
+                name='Profit Zone',
+                showlegend=False,
+                hoverinfo='skip'
+            ), row=1, col=1
+        )
+
+        # Add annotations for reference lines
+        annotations = [
+            dict(
+                x=ts['timestamp'].iloc[-1],
+                y=current_high,
+                text=f"Sell: {current_high:,.0f} gp",
+                showarrow=True,
+                arrowhead=2,
+                arrowcolor='#e74c3c',
+                arrowwidth=2,
+                bgcolor='rgba(231, 76, 60, 0.8)',
+                bordercolor='#e74c3c',
+                font=dict(color='white', size=10),
+                xanchor='left'
+            ),
+            dict(
+                x=ts['timestamp'].iloc[-1],
+                y=current_low,
+                text=f"Buy: {current_low:,.0f} gp",
+                showarrow=True,
+                arrowhead=2,
+                arrowcolor='#27ae60',
+                arrowwidth=2,
+                bgcolor='rgba(39, 174, 96, 0.8)',
+                bordercolor='#27ae60',
+                font=dict(color='white', size=10),
+                xanchor='left'
+            ),
+            dict(
+                x=ts['timestamp'].iloc[len(ts) // 2],  # Middle of chart
+                y=break_even_price,
+                text=f"Break-Even: {break_even_price:,.0f} gp",
+                showarrow=True,
+                arrowhead=2,
+                arrowcolor='#f39c12',
+                arrowwidth=2,
+                bgcolor='rgba(243, 156, 18, 0.8)',
+                bordercolor='#f39c12',
+                font=dict(color='white', size=10),
+                xanchor='center'
+            )
+        ]
+
     # Enhanced volume bars with color coding
     volume_colors = []
     avg_volume = ts['volume'].mean()
@@ -332,8 +445,14 @@ def create_interactive_chart(ts: pd.DataFrame,
         )
     )
 
+    # Add the annotations to the layout
+    fig.update_layout(annotations=annotations)
+
     # Display the chart
     st.plotly_chart(fig, use_container_width=True, key=f"chart_{item_name}_{current_timestep}")
+
+    # Reference line information panel
+    show_reference_info(ts, item_name)
 
     # Chart statistics below
     show_chart_statistics(ts, item_name, current_timestep)
@@ -398,3 +517,107 @@ def show_chart_statistics(ts: pd.DataFrame, item_name: str, timestep: str):
     }
 
     st.info(f"🕒 **Current View:** {period_info.get(timestep, 'Unknown timeframe')}")
+
+
+def show_reference_info(ts: pd.DataFrame, item_name: str):
+    """Display reference line information and trading analysis"""
+
+    if ts.empty:
+        return
+
+    # Calculate reference prices
+    current_high = ts['high'].iloc[-1]
+    current_low = ts['low'].iloc[-1]
+
+    from utils import calculate_ge_tax
+    ge_tax = calculate_ge_tax(current_high)
+    break_even_price = current_low + ge_tax
+    net_profit = current_high - break_even_price
+    roi = (net_profit / current_low * 100) if current_low > 0 else 0
+
+    st.markdown("---")
+    st.subheader("📍 Reference Lines Explained")
+
+    # Reference line info in columns
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown("### 🟢 Buy Price")
+        st.metric(
+            label="Current Buy Price",
+            value=f"{current_low:,.0f} gp",
+            help="Price to place buy orders at"
+        )
+        st.caption("🔹 Green dotted line on chart")
+
+    with col2:
+        st.markdown("### 🔴 Sell Price")
+        st.metric(
+            label="Current Sell Price",
+            value=f"{current_high:,.0f} gp",
+            help="Price to place sell orders at"
+        )
+        st.caption("🔹 Red dotted line on chart")
+
+    with col3:
+        st.markdown("### 🟡 Break-Even")
+        st.metric(
+            label="Break-Even Price",
+            value=f"{break_even_price:,.0f} gp",
+            delta=f"Tax: {ge_tax:,.0f} gp",
+            help="Buy price + GE tax = minimum profitable sell price"
+        )
+        st.caption("🔹 Orange dash-dot line on chart")
+
+    with col4:
+        st.markdown("### 💰 Net Profit")
+        st.metric(
+            label="Potential Profit",
+            value=f"{net_profit:,.0f} gp",
+            delta=f"ROI: {roi:.1f}%",
+            delta_color="normal" if roi > 0 else "inverse"
+        )
+        st.caption("🔹 Green shaded profit zone")
+
+    # Trading analysis
+    st.subheader("💡 Trading Analysis")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**🎯 Entry Strategy:**")
+        if roi >= 5:
+            st.success("✅ **Excellent opportunity** - High ROI with good margin")
+        elif roi >= 2:
+            st.info("📊 **Good opportunity** - Decent profit potential")
+        elif roi >= 0.5:
+            st.warning("⚠️ **Marginal opportunity** - Low profit margin")
+        else:
+            st.error("❌ **Poor opportunity** - Unprofitable after tax")
+
+        # Risk assessment
+        spread_pct = ((current_high - current_low) / current_low * 100) if current_low > 0 else 0
+        if spread_pct >= 10:
+            st.info("📈 **Wide spread** - Higher volatility, higher potential")
+        elif spread_pct >= 5:
+            st.info("📊 **Normal spread** - Standard market conditions")
+        else:
+            st.warning("📉 **Narrow spread** - Low volatility, limited profit")
+
+    with col2:
+        st.markdown("**⚡ Quick Stats:**")
+        st.write(f"• **Spread:** {current_high - current_low:,.0f} gp ({spread_pct:.1f}%)")
+        st.write(f"• **GE Tax:** {ge_tax:,.0f} gp ({(ge_tax / current_high * 100):.1f}%)")
+        st.write(f"• **Tax Rate:** {min(2.0, (ge_tax / current_high * 100)):.1f}% (max 2%)")
+
+        # Price trend
+        if len(ts) >= 2:
+            price_change = current_high - ts['high'].iloc[0]
+            trend_direction = "📈 Rising" if price_change > 0 else "📉 Falling" if price_change < 0 else "➡️ Stable"
+            st.write(f"• **Price Trend:** {trend_direction}")
+
+        # Volume analysis
+        avg_volume = ts['volume'].mean()
+        current_volume = ts['volume'].iloc[-1]
+        vol_status = "🔥 High" if current_volume > avg_volume * 1.5 else "📊 Normal" if current_volume > avg_volume * 0.5 else "💤 Low"
+        st.write(f"• **Volume Status:** {vol_status}")
