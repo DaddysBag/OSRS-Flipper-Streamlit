@@ -394,15 +394,42 @@ def show_opportunities_page():
             help="Display all items regardless of filters"
         )
 
-    # Auto-refresh
-    auto_refresh = st.sidebar.checkbox("Auto-refresh (30s)")
-    if auto_refresh:
-        st.sidebar.write("⏰ Auto-refreshing...")
-        import time
-        time.sleep(30)
-        st.rerun()  # Fixed deprecated method
+        # Mobile view toggle
+        mobile_view = st.sidebar.checkbox(
+            "📱 Mobile-Friendly View",
+            value=False,
+            help="Simplified layout optimized for mobile devices"
+        )
+        if mobile_view != st.session_state.get('mobile_view', False):
+            st.session_state['mobile_view'] = mobile_view
 
-    # Main scan button
+        # Auto-refresh toggle
+        auto_refresh = st.sidebar.checkbox(
+            "Auto-refresh (30s)",
+            help="Automatically refresh data every 30 seconds"
+        )
+
+        if auto_refresh:
+            st.sidebar.caption("⏰ Auto-refreshing every 30 seconds...")
+            import time
+            time.sleep(30)
+            st.rerun()
+
+        # Keyboard shortcuts info - ADD THIS NEW SECTION HERE
+        with st.sidebar.expander("⌨️ Keyboard Shortcuts"):
+            st.markdown("""
+            **Available Shortcuts:**
+            - `Ctrl + R` - Refresh data
+            - `Ctrl + /` - Focus search
+            - `Escape` - Clear current selection
+
+            **Mobile Gestures:**
+            - Swipe left/right on table rows
+            - Pull down to refresh (experimental)
+            """)
+
+        st.sidebar.markdown('</div>', unsafe_allow_html=True)  # This closing tag stays at the end
+
     # Main scan button
     if st.button("🔄 Refresh Data", type="primary"):
         # Enhanced loading with progress tracking
@@ -810,7 +837,14 @@ def show_opportunities_page():
         current_page_items = final_display_df.iloc[start_idx:end_idx]
 
         # Create table header
-        header_cols = st.columns([0.4, 2, 1, 1, 1.2, 1, 1, 1.5, 1.2, 1.2, 1.2, 1.2])
+        # Mobile-responsive table header
+        if st.session_state.get('mobile_view', False):
+            # Simplified mobile layout
+            st.markdown("### 📱 Mobile View")
+            # We'll create a simplified mobile table layout
+        else:
+            # Desktop table header
+            header_cols = st.columns([0.4, 2, 1, 1, 1.2, 1, 1, 1.5, 1.2, 1.2, 1.2, 1.2])
         headers = ['Status', 'Item Name', 'Buy Price', 'Sell Price', 'Net Margin', 'ROI (%)',
                    '1h Volume', 'Risk Adj. Utility', 'Manip. Risk', 'Volatility', 'Tax', 'GE Limit']
 
@@ -2112,6 +2146,239 @@ def inject_custom_css():
                 padding: 15px !important;
             }
         }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+            }
+        }
+        
+        /* Animated elements */
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .slide-in {
+            animation: slideInRight 0.5s ease-out;
+        }
+        
+        /* Enhanced button animations */
+        .stButton > button {
+            position: relative !important;
+            overflow: hidden !important;
+        }
+        
+        .stButton > button::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: -100% !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
+            transition: left 0.5s !important;
+        }
+        
+        .stButton > button:hover::before {
+            left: 100% !important;
+        }
+        
+        /* Pulse animation for important elements */
+        .pulse-success {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Enhanced tooltips */
+        .enhanced-tooltip {
+            position: relative !important;
+            cursor: help !important;
+        }
+        
+        .enhanced-tooltip::after {
+            content: attr(data-tooltip) !important;
+            position: absolute !important;
+            bottom: 125% !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            background: rgba(0, 0, 0, 0.9) !important;
+            color: white !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+            font-size: 0.8rem !important;
+            white-space: nowrap !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transition: all 0.3s ease !important;
+            z-index: 1000 !important;
+        }
+        
+        .enhanced-tooltip::before {
+            content: '' !important;
+            position: absolute !important;
+            bottom: 115% !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            border: 5px solid transparent !important;
+            border-top-color: rgba(0, 0, 0, 0.9) !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .enhanced-tooltip:hover::after,
+        .enhanced-tooltip:hover::before {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        /* Mobile Responsive Improvements */
+        @media (max-width: 768px) {
+            .stApp {
+                padding: 10px !important;
+            }
+            
+            .main .block-container {
+                padding: 1rem !important;
+                max-width: 100% !important;
+            }
+            
+            h1 {
+                font-size: 1.8rem !important;
+                text-align: center !important;
+            }
+            
+            .metric-card {
+                padding: 15px 10px !important;
+                margin-bottom: 10px !important;
+            }
+            
+            .metric-value {
+                font-size: 1.5rem !important;
+            }
+            
+            .filter-section {
+                padding: 15px !important;
+                margin-bottom: 15px !important;
+            }
+            
+            .table-header {
+                padding: 10px 15px !important;
+            }
+            
+            .table-header h2 {
+                font-size: 1.2rem !important;
+            }
+            
+            /* Stack columns on mobile */
+            .stColumns {
+                flex-direction: column !important;
+            }
+            
+            .stColumn {
+                width: 100% !important;
+                margin-bottom: 10px !important;
+            }
+            
+            /* Mobile-friendly buttons */
+            .stButton > button {
+                width: 100% !important;
+                padding: 12px !important;
+                font-size: 0.9rem !important;
+            }
+            
+            /* Mobile pagination */
+            .pagination-container {
+                padding: 10px !important;
+            }
+            
+            /* Mobile chart section */
+            .chart-section {
+                padding: 15px !important;
+            }
+            
+            /* Hide some elements on mobile for cleaner look */
+            .hide-mobile {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .metric-value {
+                font-size: 1.2rem !important;
+            }
+            
+            .metric-label {
+                font-size: 0.8rem !important;
+            }
+            
+            .pagination-info {
+                font-size: 0.8rem !important;
+            }
+        }
+        
+        /* Dark mode toggle styling */
+        .theme-toggle {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 20px !important;
+            padding: 8px 16px !important;
+            color: #e0e0e0 !important;
+            cursor: pointer !important;
+            backdrop-filter: blur(10px) !important;
+            transition: all 0.3s ease !important;
+            z-index: 1000 !important;
+            font-size: 0.9rem !important;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(76, 175, 80, 0.2) !important;
+            border-color: #4CAF50 !important;
+            transform: translateY(-2px) !important;
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth !important;
+        }
+        
+        /* Enhanced focus states for accessibility */
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid #4CAF50 !important;
+            outline-offset: 2px !important;
+        }
 
     </style>
     """, unsafe_allow_html=True)
@@ -2265,6 +2532,43 @@ def create_enhanced_metrics(df):
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+def show_error_message(message, icon="❌", details=None):
+    """Show a beautiful error message with optional details"""
+    st.markdown(f"""
+    <div style="
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        color: #dc3545;
+        font-weight: 500;
+    ">
+        <div style="font-size: 1.1rem; margin-bottom: 5px;">
+            {icon} {message}
+        </div>
+        {f'<div style="font-size: 0.9rem; color: #999; margin-top: 8px;">{details}</div>' if details else ''}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def show_info_message(message, icon="ℹ️"):
+    """Show a beautiful info message"""
+    st.markdown(f"""
+    <div style="
+        background: rgba(52, 152, 219, 0.1);
+        border: 1px solid rgba(52, 152, 219, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        color: #3498db;
+        font-weight: 500;
+        text-align: center;
+    ">
+        {icon} {message}
+    </div>
+    """, unsafe_allow_html=True)
+
 def show_success_message(message, icon="✅"):
     """Show a beautiful success message"""
     st.markdown(f"""
@@ -2310,6 +2614,60 @@ def streamlit_dashboard():
 
     # Inject our custom CSS
     inject_custom_css()
+
+    # Add theme toggle and advanced interactions
+    st.markdown("""
+        <div class="theme-toggle" onclick="toggleTheme()">
+            🌙 Dark Mode
+        </div>
+
+        <script>
+            function toggleTheme() {
+                // Add theme toggle functionality
+                const app = document.querySelector('.stApp');
+                if (app.style.filter === 'invert(1) hue-rotate(180deg)') {
+                    app.style.filter = '';
+                    document.querySelector('.theme-toggle').innerHTML = '🌙 Dark Mode';
+                } else {
+                    app.style.filter = 'invert(1) hue-rotate(180deg)';
+                    document.querySelector('.theme-toggle').innerHTML = '☀️ Light Mode';
+                }
+            }
+
+            // Add smooth animations to elements as they appear
+            function addAnimations() {
+                const elements = document.querySelectorAll('.metric-card, .filter-section, .results-container');
+                elements.forEach((el, index) => {
+                    el.style.animationDelay = (index * 0.1) + 's';
+                    el.classList.add('fade-in');
+                });
+            }
+
+            // Run animations when page loads
+            setTimeout(addAnimations, 100);
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+R to refresh
+                if (e.ctrlKey && e.key === 'r') {
+                    e.preventDefault();
+                    const refreshBtn = document.querySelector('[data-testid="stButton"] button');
+                    if (refreshBtn && refreshBtn.textContent.includes('Refresh')) {
+                        refreshBtn.click();
+                    }
+                }
+
+                // Ctrl+/ to focus search
+                if (e.ctrlKey && e.key === '/') {
+                    e.preventDefault();
+                    const searchInput = document.querySelector('input[placeholder*="Search"], input[placeholder*="search"]');
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }
+            });
+        </script>
+        """, unsafe_allow_html=True)
 
     # Initialize session state
     if 'presets' not in st.session_state:
