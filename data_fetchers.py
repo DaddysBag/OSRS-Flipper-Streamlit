@@ -55,9 +55,22 @@ def get_item_mapping():
             print(f"✅ Processed {len(id2name)} item mappings")
             return id2name, name2id
 
+
         except Exception as e:
+
             print(f"❌ Error processing mapping: {e}")
+
+            # Try to return cached data even if expired
+
+            cached_result = cache_manager.get("get_item_mapping", 1440)  # Try 24h old cache
+
+            if cached_result:
+                print("📦 Using stale cache data as fallback")
+
+                return cached_result
+
             traceback.print_exc()
+
             return {}, {}
 
     # Use cache with 60-minute TTL (item mapping rarely changes)

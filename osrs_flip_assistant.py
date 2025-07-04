@@ -270,30 +270,43 @@ def show_opportunities_page():
     else:
         m, v, u = MIN_MARGIN, MIN_VOLUME, MIN_UTILITY
 
-    # Filter controls
-    MIN_MARGIN = st.sidebar.slider("Min Net Margin", 0, 5000, m, 50)
-    st.session_state['min_margin'] = MIN_MARGIN
+        # Filter controls - only update session state when values actually change
+        new_min_margin = st.sidebar.slider("Min Net Margin", 0, 5000, m, 50)
+        if new_min_margin != st.session_state.get('min_margin', m):
+            st.session_state['min_margin'] = new_min_margin
+        MIN_MARGIN = st.session_state.get('min_margin', m)
 
-    MIN_VOLUME = st.sidebar.slider("Min Volume/hr", 0, 20000, v, 100)
-    st.session_state['min_volume'] = MIN_VOLUME
+        new_min_volume = st.sidebar.slider("Min Volume/hr", 0, 20000, v, 100)
+        if new_min_volume != st.session_state.get('min_volume', v):
+            st.session_state['min_volume'] = new_min_volume
+        MIN_VOLUME = st.session_state.get('min_volume', v)
 
-    MIN_UTILITY = st.sidebar.slider("Min Utility", 0, 50000, u, 500)
-    st.session_state['min_utility'] = MIN_UTILITY
+        new_min_utility = st.sidebar.slider("Min Utility", 0, 50000, u, 500)
+        if new_min_utility != st.session_state.get('min_utility', u):
+            st.session_state['min_utility'] = new_min_utility
+        MIN_UTILITY = st.session_state.get('min_utility', u)
 
-    st.session_state['season_th'] = st.sidebar.slider("Min Season Ratio", 0.0, 5.0,
-                                                      st.session_state.get('season_th', 0.0), 0.1)
+        new_season_th = st.sidebar.slider("Min Season Ratio", 0.0, 5.0,
+                                          st.session_state.get('season_th', 0.0), 0.1)
+        if new_season_th != st.session_state.get('season_th', 0.0):
+            st.session_state['season_th'] = new_season_th
 
-    st.sidebar.subheader("🔬 Advanced Risk Filters")
-    st.session_state['manipulation_th'] = st.sidebar.slider(
-        "Max Manipulation Score", 0, 10,
-        st.session_state.get('manipulation_th', 7), 1,
-        help="Lower = stricter filtering of potentially manipulated items"
-    )
-    st.session_state['volatility_th'] = st.sidebar.slider(
-        "Max Volatility Score", 0, 10,
-        st.session_state.get('volatility_th', 8), 1,
-        help="Lower = stricter filtering of volatile items"
-    )
+        st.sidebar.subheader("🔬 Advanced Risk Filters")
+        new_manipulation_th = st.sidebar.slider(
+            "Max Manipulation Score", 0, 10,
+            st.session_state.get('manipulation_th', 7), 1,
+            help="Lower = stricter filtering of potentially manipulated items"
+        )
+        if new_manipulation_th != st.session_state.get('manipulation_th', 7):
+            st.session_state['manipulation_th'] = new_manipulation_th
+
+        new_volatility_th = st.sidebar.slider(
+            "Max Volatility Score", 0, 10,
+            st.session_state.get('volatility_th', 8), 1,
+            help="Lower = stricter filtering of volatile items"
+        )
+        if new_volatility_th != st.session_state.get('volatility_th', 8):
+            st.session_state['volatility_th'] = new_volatility_th
 
     show_all = st.sidebar.checkbox("Show All", value=False)
 
@@ -730,66 +743,61 @@ def show_opportunities_page():
 
         st.markdown("---")
 
-        # Create table rows for current page
+        # Pre-format all data outside the loop for better performance
+        formatted_page_data = []
         for idx, (_, row) in enumerate(current_page_items.iterrows()):
+            item_name = row['Item']
+            roi_color = "🟢" if row['ROI (%)'] >= 5 else "🟡" if row['ROI (%)'] >= 2 else "🔴"
+            risk = row.get('Manipulation Risk', 'N/A')
+            risk_color = "🟢" if risk == "Normal" else "🟡" if risk == "Low" else "🔴"
+            vol = row.get('Volatility Level', 'N/A')
+            vol_color = "🟢" if "Low" in str(vol) else "🟡" if "Medium" in str(vol) else "🔴"
+
+            formatted_page_data.append({
+                'idx': idx,
+                'status': row['Status'],
+                'item_name': item_name,
+                'buy_price': f"{row['Buy Price']:,}",
+                'sell_price': f"{row['Sell Price']:,}",
+                'net_margin': f"**{row['Net Margin']:,}**",
+                'roi_display': f"{roi_color} {row['ROI (%)']:.1f}%",
+                'volume': f"{row['1h Volume']:,}",
+                'risk_util': f"{row['Risk Adjusted Utility']:,.0f}",
+                'risk_display': f"{risk_color} {risk}",
+                'vol_display': f"{vol_color} {vol}",
+                'tax': row['Tax'],
+                'ge_limit': row['GE Limit'],
+                'button_key': f"item_page_{st.session_state.current_page}_idx_{idx}_{hash(item_name)}"
+            })
+
+        # Create table rows using pre-formatted data
+        for row_data in formatted_page_data:
             with st.container():
                 cols = st.columns([0.4, 2, 1, 1, 1.2, 1, 1, 1.5, 1.2, 1.2, 1.2, 1.2])
 
-                with cols[0]:  # Status
-                    st.write(row['Status'])
+                cols[0].write(row_data['status'])
 
-                with cols[1]:  # Clickable Item Name
-                    item_name = row['Item']
+                with cols[1]:
                     if st.button(
-                            item_name,
-                            key=f"item_page_{st.session_state.current_page}_idx_{idx}_{hash(item_name)}",
-                            help=f"Click to view {item_name} chart",
+                            row_data['item_name'],
+                            key=row_data['button_key'],
+                            help=f"Click to view {row_data['item_name']} chart",
                             use_container_width=True
                     ):
-                        # Show loading state for chart navigation
-                        with st.spinner(f"📊 Loading chart for {item_name}..."):
-                            st.session_state['selected_item'] = item_name
-                            st.session_state.page = 'charts'
-                            # Add slight delay to show spinner
-                            import time
-                            time.sleep(0.5)
-                        st.success(f"✅ Navigating to {item_name} chart...")
+                        st.session_state['selected_item'] = row_data['item_name']
+                        st.session_state.page = 'charts'
                         st.rerun()
 
-                with cols[2]:  # Buy Price
-                    st.write(f"{row['Buy Price']:,}")
-
-                with cols[3]:  # Sell Price
-                    st.write(f"{row['Sell Price']:,}")
-
-                with cols[4]:  # Net Margin
-                    st.write(f"**{row['Net Margin']:,}**")
-
-                with cols[5]:  # ROI
-                    roi_color = "🟢" if row['ROI (%)'] >= 5 else "🟡" if row['ROI (%)'] >= 2 else "🔴"
-                    st.write(f"{roi_color} {row['ROI (%)']:.1f}%")
-
-                with cols[6]:  # Volume
-                    st.write(f"{row['1h Volume']:,}")
-
-                with cols[7]:  # Risk Adjusted Utility
-                    st.write(f"{row['Risk Adjusted Utility']:,.0f}")
-
-                with cols[8]:  # Manipulation Risk
-                    risk = row.get('Manipulation Risk', 'N/A')
-                    risk_color = "🟢" if risk == "Normal" else "🟡" if risk == "Low" else "🔴"
-                    st.write(f"{risk_color} {risk}")
-
-                with cols[9]:  # Volatility Level
-                    vol = row.get('Volatility Level', 'N/A')
-                    vol_color = "🟢" if "Low" in str(vol) else "🟡" if "Medium" in str(vol) else "🔴"
-                    st.write(f"{vol_color} {vol}")
-
-                with cols[10]:  # Tax
-                    st.write(row['Tax'])
-
-                with cols[11]:  # GE Limit
-                    st.write(row['GE Limit'])
+                cols[2].write(row_data['buy_price'])
+                cols[3].write(row_data['sell_price'])
+                cols[4].write(row_data['net_margin'])
+                cols[5].write(row_data['roi_display'])
+                cols[6].write(row_data['volume'])
+                cols[7].write(row_data['risk_util'])
+                cols[8].write(row_data['risk_display'])
+                cols[9].write(row_data['vol_display'])
+                cols[10].write(row_data['tax'])
+                cols[11].write(row_data['ge_limit'])
 
         # Pagination controls at the bottom (repeat for convenience)
         st.markdown("---")

@@ -97,6 +97,12 @@ def create_interactive_chart(ts: pd.DataFrame,
         chart_status.text("📊 Preparing chart data...")
         chart_progress.progress(20)
 
+    except Exception as e:
+        chart_progress.empty()
+        chart_status.empty()
+        st.error(f"❌ Error creating chart: {e}")
+        return
+
     # Time period controls at the top
     if show_time_controls:
         st.subheader("📅 Time Period Selection")
@@ -259,40 +265,46 @@ def create_interactive_chart(ts: pd.DataFrame,
         profitable_periods = []
         unprofitable_periods = []
 
-        for i in range(len(ts)):
-            try:
-                high_price = ts['high'].iloc[i]
-                low_price = ts['low'].iloc[i]
+        # Vectorized approach - much faster
+        ts_valid = ts.dropna(subset=['high', 'low', 'timestamp']).copy()
+        ts_valid = ts_valid[(ts_valid['high'] > 0) & (ts_valid['low'] > 0) & (ts_valid['high'] >= ts_valid['low'])]
 
-                # Skip invalid data points
-                if pd.isna(high_price) or pd.isna(low_price) or high_price <= 0 or low_price <= 0:
-                    continue
+        if len(ts_valid) > 0:
+            # Calculate all profits at once
+            ts_valid['ge_tax'] = ts_valid['high'].apply(calculate_ge_tax)
+            ts_valid['net_profit'] = ts_valid['high'] - ts_valid['low'] - ts_valid['ge_tax']
 
-                ge_tax = calculate_ge_tax(high_price)
-                net_profit = high_price - low_price - ge_tax
+            # Split into categories using boolean indexing
+            profitable_data = ts_valid[ts_valid['net_profit'] > 0]
+            unprofitable_data = ts_valid[ts_valid['net_profit'] <= 0]
 
-                timestamp = ts['timestamp'].iloc[i]
-
-            except (IndexError, ValueError, TypeError) as e:
-                # Skip problematic data points
-                continue
-
-            timestamp = ts['timestamp'].iloc[i]
-
-            if net_profit > 0:
-                profitable_periods.append({
-                    'timestamp': timestamp,
-                    'high': high_price,
-                    'low': low_price,
-                    'profit': net_profit
-                })
+            # Convert to lists for plotting
+            if len(profitable_data) > 0:
+                profitable_periods = [
+                    {
+                        'timestamp': row['timestamp'],
+                        'high': row['high'],
+                        'low': row['low'],
+                        'profit': row['net_profit']
+                    } for _, row in profitable_data.iterrows()
+                ]
             else:
-                unprofitable_periods.append({
-                    'timestamp': timestamp,
-                    'high': high_price,
-                    'low': low_price,
-                    'loss': abs(net_profit)
-                })
+                profitable_periods = []
+
+            if len(unprofitable_data) > 0:
+                unprofitable_periods = [
+                    {
+                        'timestamp': row['timestamp'],
+                        'high': row['high'],
+                        'low': row['low'],
+                        'loss': abs(row['net_profit'])
+                    } for _, row in unprofitable_data.iterrows()
+                ]
+            else:
+                unprofitable_periods = []
+        else:
+            profitable_periods = []
+            unprofitable_periods = []
 
         # Create profitable fill areas (green gradient)
         if profitable_periods:
@@ -1052,12 +1064,6 @@ def create_interactive_chart(ts: pd.DataFrame,
     chart_progress.empty()
     chart_status.empty()
 
-    except Exception as e:
-    chart_progress.empty()
-    chart_status.empty()
-    st.error(f"❌ Error creating chart: {e}")
-    return
-
     # Add chart interaction controls
     show_chart_controls(ts, item_name, current_timestep)
 
@@ -1068,7 +1074,6 @@ def create_interactive_chart(ts: pd.DataFrame,
     show_chart_statistics(ts, item_name, current_timestep)
     show_volume_insights(ts, item_name)
     show_fill_area_analysis(ts, item_name)
-
 
 def show_chart_statistics(ts: pd.DataFrame, item_name: str, timestep: str):
     """Display chart statistics and analysis"""
