@@ -691,9 +691,12 @@ def show_opportunities_page():
                     st.warning("No items found matching your search.")
 
             # Back to paginated view
-            if st.button("📄 Back to Paginated View"):
-                st.session_state['show_all_table'] = False
-                st.rerun()
+            st.markdown("---")
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("📄 ⬅️ Back to Paginated View", type="primary", use_container_width=True):
+                    st.session_state['show_all_table'] = False
+                    st.rerun()
 
             return  # Skip the paginated table if showing all
 
