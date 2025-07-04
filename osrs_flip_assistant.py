@@ -534,6 +534,14 @@ def streamlit_dashboard():
             selection_mode="single-row"
         )
 
+        st.write("Debug - Selected rows:", selected_rows)
+        st.write("Streamlit version:", st.__version__)
+
+        if hasattr(selected_rows, 'selection'):
+            st.write("Selection exists:", selected_rows.selection)
+        else:
+            st.write("Selection not supported - need Streamlit 1.29.0+")
+
         # Handle item selection
         if selected_rows['selection']['rows']:
             selected_idx = selected_rows['selection']['rows'][0]
