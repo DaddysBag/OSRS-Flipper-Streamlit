@@ -534,7 +534,7 @@ def create_interactive_chart(ts: pd.DataFrame,
         fig.update_layout(
             yaxis3=dict(
                 title='Volume %',
-                titlefont=dict(color='white', size=10),
+                title_font=dict(color='white', size=10),
                 tickfont=dict(color='white', size=8),
                 side='right',
                 overlaying='y2',
