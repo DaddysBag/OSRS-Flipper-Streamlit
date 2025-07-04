@@ -1725,7 +1725,6 @@ def inject_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
-
 def create_enhanced_header():
     """Create the enhanced header with status indicators"""
 
@@ -1741,30 +1740,37 @@ def create_enhanced_header():
     time_diff = current_time - st.session_state.last_update_time
     minutes_ago = int(time_diff.total_seconds() / 60)
 
-    # Check Discord alerts status
-    alert_status = "🔔 Active" if not st.session_state.get('show_all_table', False) else "🚫 Disabled"
+    # Main header
+    st.markdown("""
+    <h1 style="color: #ffd700; font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">
+    💸 OSRS GE Flipping Assistant
+    </h1>
+    """, unsafe_allow_html=True)
 
-    # Create the header HTML
-    header_html = f"""
-    <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 25px; margin-bottom: 30px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
-        <h1 style="color: #ffd700; font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); font-weight: 600;">💸 OSRS GE Flipping Assistant</h1>
+    st.markdown("""
+    <p style="color: #bbb; font-size: 1.1rem; margin-bottom: 20px;">
+    Real-time Grand Exchange opportunity scanner with advanced analytics
+    </p>
+    """, unsafe_allow_html=True)
 
-        <p style="color: #bbb; font-size: 1.1rem; margin-bottom: 20px; font-weight: 300;">Real-time Grand Exchange opportunity scanner with advanced analytics</p>
+    # Status indicators using columns
+    col1, col2, col3, col4 = st.columns(4)
 
-        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
-            <div style="background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); border-radius: 8px; padding: 8px 16px; font-size: 0.9rem; color: #2ecc71; font-weight: 500;">✅ API Connected</div>
+    with col1:
+        st.success("✅ API Connected")
 
-            <div style="background: rgba(52, 152, 219, 0.1); border: 1px solid rgba(52, 152, 219, 0.3); border-radius: 8px; padding: 8px 16px; font-size: 0.9rem; color: #3498db; font-weight: 500;">📊 Cache Hit Rate: {cache_stats['hit_rate']:.1f}%</div>
+    with col2:
+        st.info(f"📊 Cache Hit Rate: {cache_stats['hit_rate']:.1f}%")
 
-            <div style="background: rgba(155, 89, 182, 0.1); border: 1px solid rgba(155, 89, 182, 0.3); border-radius: 8px; padding: 8px 16px; font-size: 0.9rem; color: #9b59b6; font-weight: 500;">⏰ Last Update: {minutes_ago} min ago</div>
+    with col3:
+        st.info(f"⏰ Last Update: {minutes_ago} min ago")
 
-            <div style="background: rgba(241, 196, 15, 0.1); border: 1px solid rgba(241, 196, 15, 0.3); border-radius: 8px; padding: 8px 16px; font-size: 0.9rem; color: #f1c40f; font-weight: 500;">{alert_status}</div>
-        </div>
-    </div>
-    """
-
-    # Render the HTML
-    st.markdown(header_html, unsafe_allow_html=True)
+    with col4:
+        alert_status = "🔔 Active" if not st.session_state.get('show_all_table', False) else "🚫 Disabled"
+        if "Active" in alert_status:
+            st.success(alert_status)
+        else:
+            st.warning(alert_status)
 
 # Streamlit UI
 def streamlit_dashboard():
