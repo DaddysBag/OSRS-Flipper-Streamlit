@@ -89,6 +89,14 @@ def create_interactive_chart(ts: pd.DataFrame,
                              current_timestep: str = "1h"):
     """Create enhanced interactive Plotly chart with time period controls"""
 
+    # Show chart creation progress
+    chart_progress = st.progress(0)
+    chart_status = st.empty()
+
+    try:
+        chart_status.text("📊 Preparing chart data...")
+        chart_progress.progress(20)
+
     # Time period controls at the top
     if show_time_controls:
         st.subheader("📅 Time Period Selection")
@@ -150,8 +158,13 @@ def create_interactive_chart(ts: pd.DataFrame,
 
     # Enhanced Data validation and cleaning
     if ts is None or ts.empty:
+        chart_progress.empty()
+        chart_status.empty()
         st.error("📊 No chart data available")
         return
+
+    chart_status.text("🧹 Cleaning and validating data...")
+    chart_progress.progress(40)
 
     # Clean the data - remove NaN values and invalid entries
     ts_clean = ts.copy()
@@ -686,6 +699,9 @@ def create_interactive_chart(ts: pd.DataFrame,
             ), row=2, col=1
         )
 
+    chart_status.text("🎨 Applying professional styling...")
+    chart_progress.progress(60)
+
     # Enhanced Professional Styling
     fig.update_layout(
         template='plotly_dark',
@@ -990,6 +1006,9 @@ def create_interactive_chart(ts: pd.DataFrame,
     # Add the annotations to the layout
     fig.update_layout(annotations=annotations)
 
+    chart_status.text("🚀 Rendering interactive chart...")
+    chart_progress.progress(80)
+
     # Display the enhanced interactive chart
     st.plotly_chart(
         fig,
@@ -1023,6 +1042,21 @@ def create_interactive_chart(ts: pd.DataFrame,
             'responsive': True
         }
     )
+
+    chart_progress.progress(100)
+    chart_status.text("✅ Chart ready!")
+
+    # Clear progress indicators
+    import time
+    time.sleep(0.5)
+    chart_progress.empty()
+    chart_status.empty()
+
+    except Exception as e:
+    chart_progress.empty()
+    chart_status.empty()
+    st.error(f"❌ Error creating chart: {e}")
+    return
 
     # Add chart interaction controls
     show_chart_controls(ts, item_name, current_timestep)

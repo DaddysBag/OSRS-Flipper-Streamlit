@@ -306,19 +306,97 @@ def show_opportunities_page():
         st.rerun()  # Fixed deprecated method
 
     # Main scan button
+    # Main scan button
     if st.button("🔄 Refresh Data", type="primary"):
-        with st.spinner("Scanning for flip opportunities..."):
-            df, name2id = run_flip_scanner(mode)
+        # Enhanced loading with progress tracking
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        try:
+            status_text.text("🔍 Loading item mappings...")
+            progress_bar.progress(20)
+
+            status_text.text("💰 Fetching current market prices...")
+            progress_bar.progress(40)
+
+            status_text.text("📊 Analyzing opportunities...")
+            progress_bar.progress(60)
+
+            with st.spinner("🔄 Processing data..."):
+                df, name2id = run_flip_scanner(mode)
+
+            progress_bar.progress(80)
+            status_text.text("✅ Finalizing results...")
+
             # Store price data for trend viewer
             if 'price_data' not in st.session_state:
                 st.session_state.price_data = get_real_time_prices()
+
+            progress_bar.progress(100)
+            status_text.text("🎉 Scan complete!")
+
+            # Clear progress indicators after short delay
+            import time
+            time.sleep(1)
+            progress_bar.empty()
+            status_text.empty()
+
+        except Exception as e:
+            progress_bar.empty()
+            status_text.empty()
+            st.error(f"❌ Error during scan: {e}")
+
     else:
-        # Run initial scan
-        with st.spinner("Loading flip opportunities..."):
-            df, name2id = run_flip_scanner(mode)
-            # Store price data for trend viewer
-            if 'price_data' not in st.session_state:
-                st.session_state.price_data = get_real_time_prices()
+        # Run initial scan with loading
+        if 'initial_load_done' not in st.session_state:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            try:
+                status_text.text("🚀 Starting OSRS Flip Assistant...")
+                progress_bar.progress(10)
+
+                status_text.text("🔍 Loading item database...")
+                progress_bar.progress(30)
+
+                status_text.text("💰 Fetching market data...")
+                progress_bar.progress(50)
+
+                status_text.text("📊 Finding opportunities...")
+                progress_bar.progress(70)
+
+                with st.spinner("🎯 Analyzing flipping opportunities..."):
+                    df, name2id = run_flip_scanner(mode)
+
+                progress_bar.progress(90)
+                status_text.text("✅ Ready!")
+
+                # Store price data for trend viewer
+                if 'price_data' not in st.session_state:
+                    st.session_state.price_data = get_real_time_prices()
+
+                progress_bar.progress(100)
+                status_text.text("🎉 Welcome to OSRS Flip Assistant!")
+
+                # Mark initial load as complete
+                st.session_state.initial_load_done = True
+
+                # Clear progress after delay
+                import time
+                time.sleep(1.5)
+                progress_bar.empty()
+                status_text.empty()
+
+            except Exception as e:
+                progress_bar.empty()
+                status_text.empty()
+                st.error(f"❌ Error during initial load: {e}")
+        else:
+            # Quick load for subsequent visits
+            with st.spinner("🔄 Loading opportunities..."):
+                df, name2id = run_flip_scanner(mode)
+                if 'price_data' not in st.session_state:
+                    st.session_state.price_data = get_real_time_prices()
 
     # Get price data for trend viewer
     price_data = st.session_state.get('price_data', {})
@@ -668,8 +746,14 @@ def show_opportunities_page():
                             help=f"Click to view {item_name} chart",
                             use_container_width=True
                     ):
-                        st.session_state['selected_item'] = item_name
-                        st.session_state.page = 'charts'
+                        # Show loading state for chart navigation
+                        with st.spinner(f"📊 Loading chart for {item_name}..."):
+                            st.session_state['selected_item'] = item_name
+                            st.session_state.page = 'charts'
+                            # Add slight delay to show spinner
+                            import time
+                            time.sleep(0.5)
+                        st.success(f"✅ Navigating to {item_name} chart...")
                         st.rerun()
 
                 with cols[2]:  # Buy Price
@@ -1756,6 +1840,15 @@ def streamlit_dashboard():
     # Initialize session state
     if 'presets' not in st.session_state:
         st.session_state.presets = {}
+
+    # Add cache performance display in sidebar
+    try:
+        from cache_manager import show_cache_stats
+        show_cache_stats()
+    except Exception as e:
+        # If cache stats fail, don't break the app
+        pass
+
     if 'season_th' not in st.session_state:
         st.session_state.season_th = 0.0
     if 'manipulation_th' not in st.session_state:
