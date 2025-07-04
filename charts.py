@@ -84,75 +84,317 @@ def create_enhanced_chart(ts, item_name, chart_type, height, width,
 def create_interactive_chart(ts: pd.DataFrame,
                              item_name: str,
                              width: int = 800,
-                             height: int = 500):
-    """Create interactive Plotly chart"""
+                             height: int = 500,
+                             show_time_controls: bool = True,
+                             current_timestep: str = "1h"):
+    """Create enhanced interactive Plotly chart with time period controls"""
+
+    # Time period controls at the top
+    if show_time_controls:
+        st.subheader("📅 Time Period Selection")
+
+        # Create time period buttons
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 2])
+
+        time_periods = {
+            "Day": {"timestep": "5m", "emoji": "📊", "desc": "5-minute intervals"},
+            "Week": {"timestep": "1h", "emoji": "📈", "desc": "Hourly intervals"},
+            "Month": {"timestep": "6h", "emoji": "📉", "desc": "6-hour intervals"},
+            "Year": {"timestep": "24h", "emoji": "📋", "desc": "Daily intervals"}
+        }
+
+        # Track which button was clicked
+        selected_period = None
+
+        with col1:
+            if st.button(f"{time_periods['Day']['emoji']} Day",
+                         type="primary" if current_timestep == "5m" else "secondary",
+                         help=time_periods['Day']['desc'],
+                         use_container_width=True):
+                selected_period = "Day"
+
+        with col2:
+            if st.button(f"{time_periods['Week']['emoji']} Week",
+                         type="primary" if current_timestep == "1h" else "secondary",
+                         help=time_periods['Week']['desc'],
+                         use_container_width=True):
+                selected_period = "Week"
+
+        with col3:
+            if st.button(f"{time_periods['Month']['emoji']} Month",
+                         type="primary" if current_timestep == "6h" else "secondary",
+                         help=time_periods['Month']['desc'],
+                         use_container_width=True):
+                selected_period = "Month"
+
+        with col4:
+            if st.button(f"{time_periods['Year']['emoji']} Year",
+                         type="primary" if current_timestep == "24h" else "secondary",
+                         help=time_periods['Year']['desc'],
+                         use_container_width=True):
+                selected_period = "Year"
+
+        with col5:
+            # Show current selection info
+            current_desc = next((info['desc'] for period, info in time_periods.items()
+                                 if info['timestep'] == current_timestep), "Unknown")
+            st.info(f"📍 Current: {current_desc}")
+
+        # Handle time period changes
+        if selected_period:
+            new_timestep = time_periods[selected_period]['timestep']
+            if new_timestep != current_timestep:
+                st.session_state['chart_timestep'] = new_timestep
+                st.session_state['chart_reload_needed'] = True
+                st.rerun()
+
+    # Data validation
+    if ts is None or ts.empty:
+        st.error("📊 No chart data available")
+        return
+
+    # Ensure timestamp column is datetime
     ts['timestamp'] = pd.to_datetime(ts['timestamp'])
 
+    # Create enhanced chart
     fig = make_subplots(
         rows=2, cols=1,
         shared_xaxes=True,
-        row_heights=[0.7, 0.3],
-        vertical_spacing=0.02
+        row_heights=[0.75, 0.25],  # Price chart takes 75%, volume takes 25%
+        vertical_spacing=0.02,
+        subplot_titles=['Price Chart', 'Volume']
     )
 
-    # Price traces
+    # Price traces with enhanced styling
     fig.add_trace(
         go.Scatter(
-            x=ts['timestamp'], y=ts['high'],
+            x=ts['timestamp'],
+            y=ts['high'],
             mode='lines+markers',
             name='Sell Price',
-            marker=dict(size=4),
-            line=dict(width=2),
-            hovertemplate='Sell: %{y} gp<br>%{x|%b %d %H:%M}<extra></extra>'
-        ), row=1, col=1
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=ts['timestamp'], y=ts['low'],
-            mode='lines+markers',
-            name='Buy Price',
-            marker=dict(size=4),
-            line=dict(width=2),
-            hovertemplate='Buy: %{y} gp<br>%{x|%b %d %H:%M}<extra></extra>'
+            line=dict(color='#e74c3c', width=2),
+            marker=dict(size=3, color='#e74c3c'),
+            hovertemplate='<b>Sell Price</b><br>' +
+                          'Price: %{y:,.0f} gp<br>' +
+                          'Time: %{x|%b %d, %H:%M}<br>' +
+                          '<extra></extra>'
         ), row=1, col=1
     )
 
-    # Trend line
-    ts['mid'] = (ts['high'] + ts['low']) / 2
-    rolling = ts['mid'].rolling(window=10, min_periods=1).mean()
     fig.add_trace(
         go.Scatter(
-            x=ts['timestamp'], y=rolling,
-            mode='lines',
-            name='Trend',
-            line=dict(dash='dash', width=1, color='#999'),
+            x=ts['timestamp'],
+            y=ts['low'],
+            mode='lines+markers',
+            name='Buy Price',
+            line=dict(color='#27ae60', width=2),
+            marker=dict(size=3, color='#27ae60'),
+            hovertemplate='<b>Buy Price</b><br>' +
+                          'Price: %{y:,.0f} gp<br>' +
+                          'Time: %{x|%b %d, %H:%M}<br>' +
+                          '<extra></extra>'
+        ), row=1, col=1
+    )
+
+    # Add fill area between high and low prices
+    fig.add_trace(
+        go.Scatter(
+            x=ts['timestamp'].tolist() + ts['timestamp'].tolist()[::-1],
+            y=ts['high'].tolist() + ts['low'].tolist()[::-1],
+            fill='toself',
+            fillcolor='rgba(100, 100, 100, 0.1)',
+            line=dict(color='rgba(255,255,255,0)'),
+            name='Price Range',
+            showlegend=False,
             hoverinfo='skip'
         ), row=1, col=1
     )
 
-    # Volume bars
+    # Enhanced trend line
+    if len(ts) >= 5:
+        # Calculate moving average
+        window_size = max(3, len(ts) // 10)  # Adaptive window size
+        ts['trend'] = ts[['high', 'low']].mean(axis=1).rolling(window=window_size, min_periods=1).mean()
+
+        fig.add_trace(
+            go.Scatter(
+                x=ts['timestamp'],
+                y=ts['trend'],
+                mode='lines',
+                name='Trend',
+                line=dict(color='#f39c12', width=2, dash='dash'),
+                opacity=0.8,
+                hovertemplate='<b>Trend</b><br>' +
+                              'Price: %{y:,.0f} gp<br>' +
+                              'Time: %{x|%b %d, %H:%M}<br>' +
+                              '<extra></extra>'
+            ), row=1, col=1
+        )
+
+    # Enhanced volume bars with color coding
+    volume_colors = []
+    avg_volume = ts['volume'].mean()
+
+    for vol in ts['volume']:
+        if vol > avg_volume * 1.5:
+            volume_colors.append('#e74c3c')  # High volume - red
+        elif vol > avg_volume:
+            volume_colors.append('#f39c12')  # Above average - orange
+        else:
+            volume_colors.append('#3498db')  # Normal - blue
+
     fig.add_trace(
         go.Bar(
-            x=ts['timestamp'], y=ts['volume'],
+            x=ts['timestamp'],
+            y=ts['volume'],
             name='Volume',
-            marker=dict(opacity=0.6),
-            hovertemplate='Vol: %{y}<br>%{x|%b %d %H:%M}<extra></extra>'
+            marker=dict(color=volume_colors, opacity=0.7),
+            hovertemplate='<b>Volume</b><br>' +
+                          'Volume: %{y:,.0f}<br>' +
+                          'Time: %{x|%b %d, %H:%M}<br>' +
+                          '<extra></extra>',
+            yaxis='y2'
         ), row=2, col=1
     )
 
-    # Dark styling
+    # Professional styling - GE Tracker inspired
     fig.update_layout(
         template='plotly_dark',
-        title=dict(text=item_name, x=0.5, font_size=16),
-        height=height, width=width,
+        title=dict(
+            text=f'<b>{item_name}</b> - Price Chart Analysis',
+            x=0.5,
+            font=dict(size=20, color='white')
+        ),
+        height=height,
+        width=width,
         hovermode='x unified',
-        margin=dict(t=50, b=40, l=40, r=40),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+        margin=dict(t=80, b=50, l=50, r=50),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='center',
+            x=0.5,
+            bgcolor='rgba(0,0,0,0.5)',
+            bordercolor='rgba(255,255,255,0.2)',
+            borderwidth=1
+        ),
+        plot_bgcolor='#1e1e1e',
+        paper_bgcolor='#1e1e1e'
     )
-    fig.update_xaxes(showgrid=True, gridcolor='#444', tickfont=dict(color='white'))
-    fig.update_yaxes(title_text='Price (gp)', row=1, col=1,
-                     showgrid=True, gridcolor='#444', tickfont=dict(color='white'))
-    fig.update_yaxes(title_text='Volume', row=2, col=1,
-                     showgrid=False, tickfont=dict(color='white'))
 
-    st.plotly_chart(fig, use_container_width=True)
+    # Enhanced grid and axes styling
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor='rgba(128,128,128,0.2)',
+        tickfont=dict(color='white', size=10),
+        title_font=dict(color='white'),
+        row=2, col=1
+    )
+
+    fig.update_yaxes(
+        title_text='Price (gp)',
+        row=1, col=1,
+        showgrid=True,
+        gridcolor='rgba(128,128,128,0.2)',
+        tickfont=dict(color='white', size=10),
+        title_font=dict(color='white', size=12),
+        tickformat=',.0f'
+    )
+
+    fig.update_yaxes(
+        title_text='Volume',
+        row=2, col=1,
+        showgrid=True,
+        gridcolor='rgba(128,128,128,0.1)',
+        tickfont=dict(color='white', size=10),
+        title_font=dict(color='white', size=12),
+        tickformat=',.0f'
+    )
+
+    # Add range selector buttons
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=1, label="1H", step="hour", stepmode="backward"),
+                    dict(count=6, label="6H", step="hour", stepmode="backward"),
+                    dict(count=1, label="1D", step="day", stepmode="backward"),
+                    dict(count=7, label="7D", step="day", stepmode="backward"),
+                    dict(step="all")
+                ]),
+                bgcolor='rgba(50,50,50,0.8)',
+                bordercolor='rgba(255,255,255,0.2)',
+                font=dict(color='white')
+            ),
+            rangeslider=dict(visible=False),  # Disable range slider for cleaner look
+            type="date"
+        )
+    )
+
+    # Display the chart
+    st.plotly_chart(fig, use_container_width=True, key=f"chart_{item_name}_{current_timestep}")
+
+    # Chart statistics below
+    show_chart_statistics(ts, item_name, current_timestep)
+
+
+def show_chart_statistics(ts: pd.DataFrame, item_name: str, timestep: str):
+    """Display chart statistics and analysis"""
+
+    st.markdown("---")
+    st.subheader("📊 Chart Statistics")
+
+    # Calculate key metrics
+    latest_high = ts['high'].iloc[-1]
+    latest_low = ts['low'].iloc[-1]
+    price_change = latest_high - ts['high'].iloc[0]
+    price_change_pct = (price_change / ts['high'].iloc[0]) * 100 if ts['high'].iloc[0] > 0 else 0
+
+    # Volume metrics
+    total_volume = ts['volume'].sum()
+    avg_volume = ts['volume'].mean()
+    max_volume = ts['volume'].max()
+
+    # Display metrics in columns
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            label="💰 Current Spread",
+            value=f"{latest_high - latest_low:,.0f} gp",
+            delta=f"{((latest_high - latest_low) / latest_low * 100):+.1f}%" if latest_low > 0 else None
+        )
+
+    with col2:
+        st.metric(
+            label="📈 Price Change",
+            value=f"{price_change:+,.0f} gp",
+            delta=f"{price_change_pct:+.1f}%"
+        )
+
+    with col3:
+        st.metric(
+            label="📊 Total Volume",
+            value=f"{total_volume:,.0f}",
+            delta=f"Avg: {avg_volume:,.0f}"
+        )
+
+    with col4:
+        volatility = (ts['high'].std() / ts['high'].mean()) * 100 if ts['high'].mean() > 0 else 0
+        st.metric(
+            label="⚡ Volatility",
+            value=f"{volatility:.1f}%",
+            delta="Lower = More Stable",
+            delta_color="inverse"
+        )
+
+    # Time period information
+    period_info = {
+        "5m": "📊 5-minute intervals - Intraday trading view",
+        "1h": "📈 Hourly intervals - Short-term trends",
+        "6h": "📉 6-hour intervals - Medium-term patterns",
+        "24h": "📋 Daily intervals - Long-term analysis"
+    }
+
+    st.info(f"🕒 **Current View:** {period_info.get(timestep, 'Unknown timeframe')}")

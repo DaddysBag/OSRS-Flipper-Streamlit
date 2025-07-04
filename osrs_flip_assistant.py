@@ -1382,13 +1382,29 @@ def show_charts_page():
                 chart_width = st.slider("Chart Width", 800, 1400, 1000)
                 show_trend = st.checkbox("Show Trend Line", value=True)
 
-        # Display the chart
+        # Get current timestep from session state or use default
+        current_timestep = st.session_state.get('chart_timestep', timestep)
+
+        # Check if we need to reload data due to timestep change
+        if st.session_state.get('chart_reload_needed', False):
+            st.session_state['chart_reload_needed'] = False
+            # Reload data with new timestep
+            with st.spinner(f"Loading data with new time period..."):
+                ts = get_timeseries_custom(item_id, current_timestep)
+
+            if ts is None or ts.empty:
+                st.error(f"❌ No data available for selected time period")
+                return
+
+        # Display the enhanced chart with time controls
         from charts import create_interactive_chart
         create_interactive_chart(
             ts,
             item_name=selected_item,
             width=chart_width,
-            height=chart_height
+            height=chart_height,
+            show_time_controls=True,
+            current_timestep=current_timestep
         )
 
         # Chart analysis
