@@ -1679,8 +1679,143 @@ def inject_custom_css():
             border-color: var(--accent-color) !important;
             box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
         }
+        
+        /* Enhanced Sidebar Styling */
+        .css-1d391kg, .css-1cypcdb, .css-17eq0hr {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        /* Sidebar headers */
+        .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
+            color: #4CAF50 !important;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.2) !important;
+            padding-bottom: 10px !important;
+            margin-bottom: 15px !important;
+        }
+        
+        /* Sidebar selectbox styling */
+        .css-1d391kg .stSelectbox > div > div {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 8px !important;
+        }
+        
+        /* Sidebar slider styling */
+        .css-1d391kg .stSlider {
+            padding: 10px 0 !important;
+        }
+        
+        .css-1d391kg .stSlider > div > div > div {
+            background: rgba(76, 175, 80, 0.2) !important;
+        }
+        
+        /* Sidebar text styling */
+        .css-1d391kg .stMarkdown p {
+            color: #e0e0e0 !important;
+            font-size: 0.9rem !important;
+        }
+        
+        /* Sidebar caption styling */
+        .css-1d391kg .stCaption {
+            color: #bbb !important;
+            font-style: italic !important;
+        }
 
     </style>
+    """, unsafe_allow_html=True)
+
+
+def create_enhanced_header():
+    """Create the enhanced header with status indicators"""
+
+    # Get cache stats for status bar
+    from cache_manager import cache_manager
+    cache_stats = cache_manager.get_stats()
+
+    # Calculate time since last update
+    current_time = datetime.datetime.now()
+    if 'last_update_time' not in st.session_state:
+        st.session_state.last_update_time = current_time
+
+    time_diff = current_time - st.session_state.last_update_time
+    minutes_ago = int(time_diff.total_seconds() / 60)
+
+    # Check Discord alerts status
+    alert_status = "🔔 Active" if not st.session_state.get('show_all_table', False) else "🚫 Disabled"
+
+    st.markdown(f"""
+    <div style="
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    ">
+        <h1 style="
+            color: #ffd700;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-weight: 600;
+        ">💸 OSRS GE Flipping Assistant</h1>
+
+        <p style="
+            color: #bbb;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            font-weight: 300;
+        ">Real-time Grand Exchange opportunity scanner with advanced analytics</p>
+
+        <div style="
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        ">
+            <div style="
+                background: rgba(46, 204, 113, 0.1);
+                border: 1px solid rgba(46, 204, 113, 0.3);
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                color: #2ecc71;
+                font-weight: 500;
+            ">✅ API Connected</div>
+
+            <div style="
+                background: rgba(52, 152, 219, 0.1);
+                border: 1px solid rgba(52, 152, 219, 0.3);
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                color: #3498db;
+                font-weight: 500;
+            ">📊 Cache Hit Rate: {cache_stats['hit_rate']:.1f}%</div>
+
+            <div style="
+                background: rgba(155, 89, 182, 0.1);
+                border: 1px solid rgba(155, 89, 182, 0.3);
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                color: #9b59b6;
+                font-weight: 500;
+            ">⏰ Last Update: {minutes_ago} min ago</div>
+
+            <div style="
+                background: rgba(241, 196, 15, 0.1);
+                border: 1px solid rgba(241, 196, 15, 0.3);
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                color: #f1c40f;
+                font-weight: 500;
+            ">{alert_status}</div>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
 
 # Streamlit UI
@@ -1752,11 +1887,18 @@ def streamlit_dashboard():
 
     # Page content with dynamic titles
     if st.session_state.page == 'opportunities':
-        st.title("💸 OSRS GE Flipping Assistant")
+        create_enhanced_header()
         show_opportunities_page()
     elif st.session_state.page == 'charts':
         selected_item = st.session_state.get('selected_item', 'No Item Selected')
-        st.title(f"📊 {selected_item} - Price Chart Analysis")
+        # Use enhanced header for charts page too
+        create_enhanced_header()
+        if selected_item:
+            st.markdown(f"""
+            <h2 style="color: #4CAF50; margin-top: 20px; font-weight: 600;">
+            📊 {selected_item} - Price Chart Analysis
+            </h2>
+            """, unsafe_allow_html=True)
         show_charts_page()
 
 if __name__ == '__main__':
