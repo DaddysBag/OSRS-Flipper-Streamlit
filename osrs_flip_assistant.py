@@ -111,65 +111,65 @@ def export_to_sheets(df):
 def run_flip_scanner(mode="Custom"):
     """Main scanner function with comprehensive error handling - FIXED VERSION"""
     global show_all
-    
+
     try:
         # Step 1: Get item mappings
         print("=" * 50)
         print("🚀 Starting OSRS Flip Scanner")
         print("=" * 50)
-        
+
         id2name, name2id = get_item_mapping()
         if not id2name or not name2id:
             if 'st' in globals():
                 st.error("❌ Failed to load item mappings. Cannot proceed.")
             return pd.DataFrame(), {}
-        
+
         # Step 2: Get price data
         pd_data = get_real_time_prices()
         if not pd_data:
             if 'st' in globals():
                 st.error("❌ Failed to load price data. Cannot proceed.")
             return pd.DataFrame(), name2id
-        
+
         # Step 3: Get hourly data (optional)
         h_data = get_hourly_prices()
-        
+
         # Step 4: Filter items with mode parameter
         df = filter_items(pd_data, h_data, id2name, show_all, mode)
-        
+
         if df.empty:
             if 'st' in globals():
                 st.warning("⚠️ No items match your filter criteria. Try adjusting the filters or enable 'Show All'.")
             return df, name2id
-        
+
         # Step 5: Limit results if not showing all
         if not show_all:
             df = df.head(50)
-        
+
         # Step 6: Send alerts for high-margin items (with strict conditions)
         alert_count = 0
-        
+
         # Only send alerts if we have a reasonable number of results (not showing all items)
         should_send_alerts = (
             not show_all and  # Don't send alerts when "Show All" is enabled
             len(df) <= 5 and  # Only send if 5 or fewer opportunities
             len(df) > 0       # And we have at least one opportunity
         )
-        
+
         if should_send_alerts:
             # Only alert on truly exceptional opportunities (2x minimum margin)
             high_value_items = df[df['Net Margin'] > MIN_MARGIN * 2]
-            
+
             for _, r in high_value_items.iterrows():
                 # Send alert and check if it was actually sent (not on cooldown)
                 alert_sent = send_discord_alert(r['Item'], r['Buy Price'], r['Sell Price'], r['Net Margin'])
                 if alert_sent:
                     alert_count += 1
-                    
+
                 # Limit to max 3 alerts per refresh to prevent spam
                 if alert_count >= 3:
                     break
-        
+
         if alert_count > 0:
             print(f"📢 Sent {alert_count} Discord alerts")
         elif should_send_alerts and len(df[df['Net Margin'] > MIN_MARGIN * 2]) > 0:
@@ -178,23 +178,23 @@ def run_flip_scanner(mode="Custom"):
             print(f"🚫 Discord alerts disabled - showing {len(df)} items (max 5 for alerts)")
         else:
             print(f"📊 No exceptional opportunities for Discord alerts")
-        
+
         # Step 7: Export data
         try:
             df.to_csv("flipping_report.csv", index=False)
             print("✅ Saved CSV report")
         except Exception as e:
             print(f"❌ CSV export failed: {e}")
-        
+
         try:
             export_to_sheets(df)
             print("✅ Exported to Google Sheets")
         except Exception as e:
             print(f"❌ Sheets export failed: {e}")
-        
+
         print(f"✅ Scanner completed successfully. Found {len(df)} opportunities.")
         return df, name2id
-        
+
     except Exception as e:
         error_msg = f"❌ Scanner failed with error: {e}\n{traceback.format_exc()}"
         print(error_msg)
@@ -202,35 +202,11 @@ def run_flip_scanner(mode="Custom"):
             st.error(error_msg)
         return pd.DataFrame(), {}
 
-# Streamlit UI
-def streamlit_dashboard():
-    global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
-    
-    st.set_page_config(page_title="OSRS Flip Assistant", layout="wide")
-    
-    # Initialize session state
-    if 'presets' not in st.session_state:
-        st.session_state.presets = {}
-    if 'season_th' not in st.session_state:
-        st.session_state.season_th = 0.0
-    if 'manipulation_th' not in st.session_state:
-        st.session_state.manipulation_th = 7
-    if 'volatility_th' not in st.session_state:
-        st.session_state.volatility_th = 8
-    if 'volatility_th' not in st.session_state:
-        st.session_state.volatility_th = 8
-    if 'show_chart_page' not in st.session_state:
-        st.session_state.show_chart_page = False
-    if 'selected_item' not in st.session_state:
-        st.session_state.selected_item = None
 
-    st.session_state['min_margin'] = MIN_MARGIN
-    st.session_state['min_volume'] = MIN_VOLUME
-    st.session_state['min_utility'] = MIN_UTILITY
-    
-    st.title("💸 OSRS GE Flipping Assistant")
-    
-    # Debug info
+def show_opportunities_page():
+    global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
+
+    # Debug Info
     with st.expander("🔧 Debug Information"):
         st.write("**Current Configuration:**")
         st.write(f"- Min Margin: {MIN_MARGIN:,} gp")
@@ -238,20 +214,20 @@ def streamlit_dashboard():
         st.write(f"- Min Utility: {MIN_UTILITY:,}")
         st.write(f"- Show All: {show_all}")
         st.write(f"- Season Threshold: {st.session_state.get('season_th', 0)}")
-        
+
         if st.button("🧪 Test API Connections"):
             st.write("Testing item mapping API...")
             id2name, name2id = get_item_mapping()
             st.write(f"✅ Loaded {len(id2name)} item mappings")
-            
+
             st.write("Testing price data API...")
             prices = get_real_time_prices()
             st.write(f"✅ Loaded prices for {len(prices)} items")
-            
+
             st.write("Testing hourly data API...")
             hourly = get_hourly_prices()
             st.write(f"✅ Loaded hourly data for {len(hourly)} items")
-        
+
         if st.button("📁 Create Missing Files"):
             # Create ge_limits.json if it doesn't exist
             if not os.path.exists('ge_limits.json'):
@@ -264,21 +240,21 @@ def streamlit_dashboard():
                     st.error(f"❌ Failed to create ge_limits.json: {e}")
             else:
                 st.info("ge_limits.json already exists")
-    
+
     # Preset load/save
     ps = st.sidebar.selectbox("Load Preset", [''] + list(st.session_state.presets.keys()))
     if ps:
         m, v, u, season = st.session_state.presets[ps]
         MIN_MARGIN, MIN_VOLUME, MIN_UTILITY = m, v, u
         st.session_state['season_th'] = season
-    
+
     name_in = st.sidebar.text_input("Preset Name")
     if st.sidebar.button("Save Preset") and name_in:
         st.session_state.presets[name_in] = (MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, st.session_state.get('season_th', 0))
         st.sidebar.success(f"Saved preset: {name_in}")
-    
+
     st.sidebar.markdown("---")
-    
+
     # Mode selection with new High Volume mode
     mode = st.sidebar.selectbox("Mode", ["Custom", "Low-Risk", "High-ROI", "Passive Overnight", "High Volume"])
     if mode == "Low-Risk":
@@ -293,7 +269,7 @@ def streamlit_dashboard():
         st.sidebar.info("🔥 High Volume Mode: Shows 250 highest traded items sorted by profit")
     else:
         m, v, u = MIN_MARGIN, MIN_VOLUME, MIN_UTILITY
-    
+
     # Filter controls
     MIN_MARGIN = st.sidebar.slider("Min Net Margin", 0, 5000, m, 50)
     st.session_state['min_margin'] = MIN_MARGIN
@@ -304,22 +280,23 @@ def streamlit_dashboard():
     MIN_UTILITY = st.sidebar.slider("Min Utility", 0, 50000, u, 500)
     st.session_state['min_utility'] = MIN_UTILITY
 
-    st.session_state['season_th'] = st.sidebar.slider("Min Season Ratio", 0.0, 5.0, st.session_state.get('season_th', 0.0), 0.1)
-    
+    st.session_state['season_th'] = st.sidebar.slider("Min Season Ratio", 0.0, 5.0,
+                                                      st.session_state.get('season_th', 0.0), 0.1)
+
     st.sidebar.subheader("🔬 Advanced Risk Filters")
     st.session_state['manipulation_th'] = st.sidebar.slider(
-        "Max Manipulation Score", 0, 10, 
-        st.session_state.get('manipulation_th', 7), 1, 
+        "Max Manipulation Score", 0, 10,
+        st.session_state.get('manipulation_th', 7), 1,
         help="Lower = stricter filtering of potentially manipulated items"
     )
     st.session_state['volatility_th'] = st.sidebar.slider(
-        "Max Volatility Score", 0, 10, 
+        "Max Volatility Score", 0, 10,
         st.session_state.get('volatility_th', 8), 1,
         help="Lower = stricter filtering of volatile items"
     )
-    
+
     show_all = st.sidebar.checkbox("Show All", value=False)
-    
+
     # Auto-refresh
     auto_refresh = st.sidebar.checkbox("Auto-refresh (30s)")
     if auto_refresh:
@@ -327,7 +304,7 @@ def streamlit_dashboard():
         import time
         time.sleep(30)
         st.rerun()  # Fixed deprecated method
-    
+
     # Main scan button
     if st.button("🔄 Refresh Data", type="primary"):
         with st.spinner("Scanning for flip opportunities..."):
@@ -342,14 +319,14 @@ def streamlit_dashboard():
             # Store price data for trend viewer
             if 'price_data' not in st.session_state:
                 st.session_state.price_data = get_real_time_prices()
-    
+
     # Get price data for trend viewer
     price_data = st.session_state.get('price_data', {})
-    
+
     # Display results with color coding
     if not df.empty:
         st.subheader("🔍 Top Flip Opportunities")
-        
+
         # Add color coding explanation
         col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -379,22 +356,22 @@ def streamlit_dashboard():
                 st.metric("Total Capital", f"{total_capital:,.0f} gp")
             else:
                 st.metric("Total Volume/hr", f"{df['1h Volume'].sum():,.0f}")
-        
+
         # Ensure numerical columns are properly typed for sorting
-        num_cols = ['Buy Price','Sell Price','Net Margin','ROI (%)','1h Volume']
+        num_cols = ['Buy Price', 'Sell Price', 'Net Margin', 'ROI (%)', '1h Volume']
         for c in num_cols:
             df[c] = pd.to_numeric(df[c], errors='coerce')
-            
+
         display_df = df.copy()
-        
+
         # Add color coding based on ROI and data age
         def get_enhanced_color_code(row):
             roi, data_age, volume = row['ROI (%)'], row['Data Age (min)'], row['1h Volume']
-            
+
             # Check if enhanced columns exist
             if 'Manipulation Score' in row and 'Volatility Score' in row:
                 manipulation, volatility = row['Manipulation Score'], row['Volatility Score']
-                
+
                 # High risk factors take priority
                 if manipulation >= 7 or volatility >= 8:
                     return "⚠️"  # Warning for high risk
@@ -423,10 +400,10 @@ def streamlit_dashboard():
 
         # Apply the enhanced color coding
         display_df['Status'] = display_df.apply(get_enhanced_color_code, axis=1)
-        
+
         # Get buy limits for display
         limits = get_buy_limits()
-        
+
         # Create formatted columns that preserve numerical sorting
         # Keep original numerical columns and add formatted display columns
         display_df['Buy Price (formatted)'] = display_df['Buy Price'].apply(lambda x: f"{x:,}")
@@ -434,43 +411,48 @@ def streamlit_dashboard():
         display_df['Net Margin (formatted)'] = display_df['Net Margin'].apply(lambda x: f"{x:,}")
         display_df['ROI (formatted)'] = display_df['ROI (%)'].apply(lambda x: f"{x:.1f}%")
         display_df['Volume (formatted)'] = display_df['1h Volume'].apply(lambda x: f"{x:,}")
-        
+
         # Add additional calculated columns
         display_df['Approx. Offer Price'] = display_df.apply(
-            lambda row: f"{row['Buy Price']:,} ({row['Low Age (min)']:.1f}m ago)", 
+            lambda row: f"{row['Buy Price']:,} ({row['Low Age (min)']:.1f}m ago)",
             axis=1)
         display_df['Approx. Sell Price'] = display_df.apply(
-            lambda row: f"{row['Sell Price']:,} ({row['High Age (min)']:.1f}m ago)", 
+            lambda row: f"{row['Sell Price']:,} ({row['High Age (min)']:.1f}m ago)",
             axis=1)
         display_df['Tax'] = display_df['Sell Price'].apply(lambda x: f"{calculate_ge_tax(x):,}")
-        display_df['GE Limit'] = display_df['Item'].apply(lambda x: f"{limits.get(x, 'N/A'):,}" if limits.get(x) else "N/A")
+        display_df['GE Limit'] = display_df['Item'].apply(
+            lambda x: f"{limits.get(x, 'N/A'):,}" if limits.get(x) else "N/A")
         display_df['Buy/Sell Ratio'] = display_df.apply(
-            lambda row: f"{((row['Sell Price'] - row['Buy Price']) / row['Buy Price'] * 100):+.2f}%", 
+            lambda row: f"{((row['Sell Price'] - row['Buy Price']) / row['Buy Price'] * 100):+.2f}%",
             axis=1
         )
-        
+
+        # Add Chart column before creating display dataframe
+        display_df['Chart'] = display_df['Item'].apply(lambda x: f"📊 View")
+
         # Select columns for display - use original numerical columns for sorting
         columns_to_display = [
             'Status',
             'Item',
+            'Chart',  # ← NEW: Add Chart column
             'Buy Price',
-            'Sell Price',  
+            'Sell Price',
             'Net Margin',
             'ROI (%)',
             '1h Volume',
             'Risk Adjusted Utility',
             'Manipulation Risk',
             'Volatility Level',
-            'Approx. Offer Price', 
+            'Approx. Offer Price',
             'Approx. Sell Price',
             'Tax',
             'Buy/Sell Ratio',
             'GE Limit'
         ]
-        
+
         # Create the display dataframe
         final_display_df = display_df[columns_to_display].copy()
-        
+
         # Apply custom CSS for better formatting
         st.markdown("""
         <style>
@@ -479,7 +461,7 @@ def streamlit_dashboard():
         }
         </style>
         """, unsafe_allow_html=True)
-        
+
         # Use column configuration to format display while preserving sorting
         column_config = {
             'Buy Price': st.column_config.NumberColumn(
@@ -488,7 +470,7 @@ def streamlit_dashboard():
                 format='%d gp'
             ),
             'Sell Price': st.column_config.NumberColumn(
-                'Sell Price', 
+                'Sell Price',
                 help='Current sell price',
                 format='%d gp'
             ),
@@ -521,7 +503,7 @@ def streamlit_dashboard():
                 help='Price volatility level (Very Low to Very High)'
             )
         }
-        
+
         # Display with proper numerical sorting
         st.dataframe(
             final_display_df,
@@ -532,47 +514,93 @@ def streamlit_dashboard():
             column_config=column_config
         )
 
-        # Add item selector below table
-        st.subheader("📊 View Item Chart")
-        selected_item = st.selectbox(
-            "Select an item to view detailed chart:",
-            options=df['Item'].tolist(),
-            key="item_chart_selector"
-        )
+        # Enhanced item chart navigation
+        st.subheader("📊 Quick Chart Access")
 
-        if selected_item:
-            if st.button(f"🔍 View {selected_item} Chart", type="primary"):
-                st.session_state['selected_item'] = selected_item
-                st.session_state['show_chart_page'] = True
-                st.rerun()
-        
+        # Create a more user-friendly interface with search
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            # Add search functionality
+            search_term = st.text_input("🔍 Search for item to chart:",
+                                        placeholder="Type item name...",
+                                        key="chart_search")
+
+            # Filter items based on search
+            if search_term:
+                filtered_items = [item for item in df['Item'].tolist()
+                                  if search_term.lower() in item.lower()]
+            else:
+                filtered_items = df['Item'].tolist()
+
+            # Show filtered selection
+            if filtered_items:
+                selected_item = st.selectbox(
+                    f"Select from {len(filtered_items)} items:",
+                    options=filtered_items,
+                    key="enhanced_item_selector",
+                    help="Select an item to view its detailed price chart"
+                )
+            else:
+                st.warning("No items match your search")
+                selected_item = None
+
+        with col2:
+            st.write("")  # Spacer
+            st.write("")  # Spacer
+            if selected_item:
+                if st.button(f"📈 Chart {selected_item}", type="primary", use_container_width=True):
+                    st.session_state['selected_item'] = selected_item
+                    st.session_state.page = 'charts'  # Navigate to charts page
+                    st.rerun()
+
+        # Quick access buttons for top items
+        if len(df) > 0:
+            st.write("**🚀 Quick Access - Top Opportunities:**")
+
+            # Show top 5 items as quick buttons
+            top_items = df.head(5)['Item'].tolist()
+
+            # Create columns for buttons
+            button_cols = st.columns(min(len(top_items), 5))
+
+            for i, item in enumerate(top_items):
+                with button_cols[i]:
+                    if st.button(f"📊 {item[:15]}{'...' if len(item) > 15 else ''}",
+                                 key=f"quick_chart_{i}_{item}",
+                                 help=f"View chart for {item}",
+                                 use_container_width=True):
+                        st.session_state['selected_item'] = item
+                        st.session_state.page = 'charts'
+                        st.rerun()
+
         # Mode-specific information
         if mode == "High Volume":
             st.info(f"🔥 **High Volume Mode**: Showing top {len(df)} highest traded items sorted by volume and profit")
-        
+
         # Add summary statistics bar
         col1, col2, col3, col4, col5 = st.columns(5)
-        
+
         with col1:
             total_items = len(df)
             st.metric("Total Items", total_items)
-        
+
         with col2:
             avg_margin = df['Net Margin'].mean()
             st.metric("Avg Margin", f"{avg_margin:,.0f} gp")
-        
+
         with col3:
             max_margin = df['Net Margin'].max()
             st.metric("Max Margin", f"{max_margin:,.0f} gp")
-        
+
         with col4:
             avg_roi = df['ROI (%)'].mean()
             st.metric("Avg ROI", f"{avg_roi:.1f}%")
-        
+
         with col5:
             total_volume = df['1h Volume'].sum()
             st.metric("Total Volume/hr", f"{total_volume:,.0f}")
-        
+
         # Portfolio optimization section
         st.subheader("📈 Portfolio Optimization")
 
@@ -583,36 +611,37 @@ def streamlit_dashboard():
                 options=df['Item'].tolist(),
                 default=df.head(min(10, len(df)))['Item'].tolist() if not df.empty else []
             )
-            
+
             if selected_items:
                 portfolio_df = df[df['Item'].isin(selected_items)]
-                
+
                 # Calculate portfolio metrics
-                total_capital = portfolio_df['Capital Required'].sum() if 'Capital Required' in portfolio_df.columns else 0
+                total_capital = portfolio_df[
+                    'Capital Required'].sum() if 'Capital Required' in portfolio_df.columns else 0
                 total_margin = portfolio_df['Net Margin'].sum()
                 avg_risk = portfolio_df['Risk Ratio'].mean() if 'Risk Ratio' in portfolio_df.columns else 0
-                
+
                 # Diversification score
                 categories = portfolio_df['Category'].value_counts()
                 diversification_score = min(10, len(categories) * 2)
-                
+
                 col1, col2 = st.columns(2)
-                
+
                 with col1:
                     st.write("**Portfolio Metrics:**")
                     st.metric("Total Items", len(portfolio_df))
                     st.metric("Total Potential Margin", f"{total_margin:,.0f} gp")
                     st.metric("Diversification Score", f"{diversification_score}/10")
-                    
+
                     if total_capital > 0:
                         st.metric("Total Capital Required", f"{total_capital:,.0f} gp")
                         st.metric("Average Risk Ratio", f"{avg_risk:.2%}")
-                
+
                 with col2:
                     st.write("**Category Breakdown:**")
                     category_counts = portfolio_df['Category'].value_counts()
                     st.bar_chart(category_counts)
-                    
+
                     # Risk distribution
                     if 'Manipulation Risk' in portfolio_df.columns:
                         st.write("**Risk Distribution:**")
@@ -650,26 +679,26 @@ def streamlit_dashboard():
                 st.write(f"• Fresh Data (<2m): {fresh_data}")
                 st.write(f"• Aging Data (2-5m): {aging_data}")
                 st.write(f"• Old Data (>5m): {old_data}")
-        
+
         # Add filtering controls similar to GE Tracker
         with st.expander("🔧 Advanced Filters"):
             col1, col2, col3 = st.columns(3)
-            
+
             with col1:
                 category_filter = st.multiselect(
-                    "Filter by Category", 
+                    "Filter by Category",
                     options=df['Category'].unique(),
                     default=df['Category'].unique()
                 )
-            
+
             with col2:
                 min_roi_filter = st.slider("Min ROI %", 0.0, 20.0, 0.0, 0.1)
                 max_roi_filter = st.slider("Max ROI %", 0.0, 50.0, 50.0, 0.1)
-            
+
             with col3:
                 min_volume_filter = st.slider("Min Volume/hr", 0, 10000, 0, 100)
                 max_volume_filter = st.slider("Max Volume/hr", 0, 50000, 50000, 100)
-            
+
             # Apply advanced filters
             if category_filter:
                 filtered_df = df[
@@ -678,29 +707,36 @@ def streamlit_dashboard():
                     (df['ROI (%)'] <= max_roi_filter) &
                     (df['1h Volume'] >= min_volume_filter) &
                     (df['1h Volume'] <= max_volume_filter)
-                ]
-                
+                    ]
+
                 if not filtered_df.empty and not filtered_df.equals(df):
                     st.write(f"**Filtered Results:** {len(filtered_df)} items")
-                    
+
                     # Update display with filtered data
                     filtered_display_df = filtered_df.copy()
-                    filtered_display_df['Approx. Offer Price'] = filtered_display_df['Buy Price'].apply(lambda x: f"{x:,}")
-                    filtered_display_df['Approx. Sell Price'] = filtered_display_df['Sell Price'].apply(lambda x: f"{x:,}")
-                    filtered_display_df['Tax'] = filtered_display_df['Sell Price'].apply(lambda x: f"{calculate_ge_tax(x):,}")
-                    filtered_display_df['Approx. Profit (gp)'] = filtered_display_df['Net Margin'].apply(lambda x: f"{x:,}")
+                    filtered_display_df['Approx. Offer Price'] = filtered_display_df['Buy Price'].apply(
+                        lambda x: f"{x:,}")
+                    filtered_display_df['Approx. Sell Price'] = filtered_display_df['Sell Price'].apply(
+                        lambda x: f"{x:,}")
+                    filtered_display_df['Tax'] = filtered_display_df['Sell Price'].apply(
+                        lambda x: f"{calculate_ge_tax(x):,}")
+                    filtered_display_df['Approx. Profit (gp)'] = filtered_display_df['Net Margin'].apply(
+                        lambda x: f"{x:,}")
                     filtered_display_df['ROI%'] = filtered_display_df['ROI (%)'].apply(lambda x: f"{x:.1f}%")
-                    filtered_display_df['Buying Quantity (per hour)'] = filtered_display_df['1h Volume'].apply(lambda x: f"{x:,}")
-                    filtered_display_df['Selling Quantity (per hour)'] = filtered_display_df['1h Volume'].apply(lambda x: f"{x:,}")
-                    filtered_display_df['GE Limit'] = filtered_display_df['Item'].apply(lambda x: f"{limits.get(x, 'N/A'):,}" if limits.get(x) else "N/A")
+                    filtered_display_df['Buying Quantity (per hour)'] = filtered_display_df['1h Volume'].apply(
+                        lambda x: f"{x:,}")
+                    filtered_display_df['Selling Quantity (per hour)'] = filtered_display_df['1h Volume'].apply(
+                        lambda x: f"{x:,}")
+                    filtered_display_df['GE Limit'] = filtered_display_df['Item'].apply(
+                        lambda x: f"{limits.get(x, 'N/A'):,}" if limits.get(x) else "N/A")
                     filtered_display_df['Buy/Sell Ratio'] = filtered_display_df.apply(
-                        lambda row: f"{((row['Sell Price'] - row['Buy Price']) / row['Buy Price'] * 100):+.2f}%", 
+                        lambda row: f"{((row['Sell Price'] - row['Buy Price']) / row['Buy Price'] * 100):+.2f}%",
                         axis=1
                     )
-                    
-                    #Only keep the columns that actually exist
+
+                    # Only keep the columns that actually exist
                     available = [c for c in columns_to_display if c in filtered_display_df.columns]
-                    missing   = [c for c in columns_to_display if c not in filtered_display_df.columns]
+                    missing = [c for c in columns_to_display if c not in filtered_display_df.columns]
 
                     if missing:
                         st.warning(f"The following columns are missing and will be hidden: {missing}")
@@ -717,18 +753,19 @@ def streamlit_dashboard():
                         height=400,
                         hide_index=True
                     )
-                    
+
                     st.write("Columns we have right now:", list(filtered_display_df.columns))
-        
+
         # Create a container for the main data table that won't refresh when charts update
         table_container = st.container()
-        
+
         # Download button with enhanced CSV export
         enhanced_csv = df.copy()
         enhanced_csv['Tax'] = enhanced_csv['Sell Price'].apply(calculate_ge_tax)
         enhanced_csv['GE_Limit'] = enhanced_csv['Item'].apply(lambda x: limits.get(x, 'N/A'))
-        enhanced_csv['Buy_Sell_Ratio'] = ((enhanced_csv['Sell Price'] - enhanced_csv['Buy Price']) / enhanced_csv['Buy Price'] * 100).round(2)
-        
+        enhanced_csv['Buy_Sell_Ratio'] = (
+                    (enhanced_csv['Sell Price'] - enhanced_csv['Buy Price']) / enhanced_csv['Buy Price'] * 100).round(2)
+
         csv_data = enhanced_csv.to_csv(index=False)
         st.download_button(
             label="📥 Download Enhanced CSV",
@@ -736,7 +773,7 @@ def streamlit_dashboard():
             file_name=f"osrs_flips_enhanced_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv"
         )
-        
+
         # Category summary
         st.subheader("📂 Category Summary")
         if 'Category' in df.columns:
@@ -747,59 +784,60 @@ def streamlit_dashboard():
             }).round(2)
             cat_summary.columns = ['Signals', 'Avg Utility', 'Avg Margin', 'Avg ROI%']
             st.dataframe(cat_summary, key="category_summary_table")
-        
+
         # Price correlations section with detailed explanation
         if len(name2id) > 0:
             st.subheader("🔗 Price Correlations Analysis")
-            
+
             # Add explanation
             with st.expander("ℹ️ What are Price Correlations?"):
                 st.write("""
                 **Price Correlations** measure how similarly two items' prices move together over time:
-                
+
                 📊 **Correlation Values:**
                 - **+1.0** = Perfect positive correlation (prices always move together)
                 - **0.0** = No correlation (prices move independently)  
                 - **-1.0** = Perfect negative correlation (prices move opposite)
-                
+
                 💡 **Trading Applications:**
                 - **High Positive Correlation (0.7-1.0):** Items that rise/fall together - good for diversified flipping
                 - **Negative Correlation (-0.7 to -1.0):** Items that move opposite - potential hedging opportunities
                 - **Low Correlation (0.0-0.3):** Independent items - good for portfolio diversification
-                
+
                 🎯 **Correlation Threshold:** Only shows correlations above your selected minimum strength
                 """)
-            
-            ct = st.sidebar.slider("Correlation Threshold", 0.0, 1.0, 0.8, 0.05, 
+
+            ct = st.sidebar.slider("Correlation Threshold", 0.0, 1.0, 0.8, 0.05,
                                    help="Only show correlations above this strength (0.8 = 80% correlation)")
-            
+
             if st.button("🔍 Compute Correlations"):
                 with st.spinner("Computing price correlations..."):
                     corrs = compute_price_correlations(name2id, 10, 1)
                     if not corrs.empty:
-                        pairs = [(i, j, round(corrs.loc[i, j], 2)) 
-                                for i in corrs for j in corrs 
-                                if i < j and corrs.loc[i, j] >= ct]
+                        pairs = [(i, j, round(corrs.loc[i, j], 2))
+                                 for i in corrs for j in corrs
+                                 if i < j and corrs.loc[i, j] >= ct]
                         if pairs:
                             corr_df = pd.DataFrame(pairs, columns=['Item A', 'Item B', 'Correlation'])
                             corr_df['Correlation Strength'] = corr_df['Correlation'].apply(
                                 lambda x: "🔥 Very Strong" if x >= 0.9 else
-                                         "💪 Strong" if x >= 0.7 else
-                                         "📈 Moderate" if x >= 0.5 else
-                                         "📊 Weak"
+                                "💪 Strong" if x >= 0.7 else
+                                "📈 Moderate" if x >= 0.5 else
+                                "📊 Weak"
                             )
                             st.dataframe(corr_df, key="correlation_table")
-                            
+
                             # Show correlation insights
                             st.info(f"🔍 Found {len(pairs)} item pairs with correlation ≥ {ct}")
                             if len(pairs) > 0:
                                 strongest = corr_df.iloc[0]
-                                st.success(f"🏆 Strongest correlation: **{strongest['Item A']}** ↔ **{strongest['Item B']}** ({strongest['Correlation']})")
+                                st.success(
+                                    f"🏆 Strongest correlation: **{strongest['Item A']}** ↔ **{strongest['Item B']}** ({strongest['Correlation']})")
                         else:
                             st.warning(f"No correlations above {ct} found. Try lowering the threshold.")
                     else:
                         st.error("Unable to compute correlations - insufficient data.")
-        
+
         # Backtest
         st.subheader("📈 Backtest Filters")
         days = st.slider("Days to Backtest", 1, 7, 1)
@@ -810,19 +848,19 @@ def streamlit_dashboard():
                     st.dataframe(res)
                 else:
                     st.write("No backtest signals found.")
-        
+
         # Enhanced Trend viewer
         st.subheader("📊 Advanced Trend Viewer")
-        
+
         # Search and selection
         col1, col2 = st.columns([2, 1])
         with col1:
             search = st.text_input("🔍 Search item:", placeholder="Type item name...").lower()
         with col2:
             chart_type = st.selectbox("📈 Chart Type", ["Line Chart", "Candlestick", "Area Chart", "Volume Bars"])
-        
+
         filtered = df[df['Item'].str.lower().str.contains(search, regex=False)] if search else df
-        
+
         if not filtered.empty:
             # Item selection and timeframe
             col1, col2, col3 = st.columns([3, 1, 1])
@@ -832,7 +870,7 @@ def streamlit_dashboard():
                 timestep = st.selectbox("Time Step", ["5m", "1h", "6h", "24h"], index=1)
             with col3:
                 show_volume = st.checkbox("Show Volume", value=True)
-            
+
             # Chart customization options
             with st.expander("🎨 Chart Customization"):
                 col1, col2, col3, col4 = st.columns(4)
@@ -848,31 +886,35 @@ def streamlit_dashboard():
                 with col4:
                     show_grid = st.checkbox("Show Grid", value=True)
                     volume_opacity = st.slider("Volume Opacity", 0.1, 1.0, 0.3)
-            
+
             if sel:
                 tid = name2id.get(sel)
                 if tid:
                     # Create a separate container for chart updates to prevent table refresh
                     chart_container = st.container()
-                    
+
                     with chart_container:
                         with st.spinner(f"Loading trend data for {sel}..."):
                             # Get timeseries data with custom timestep
                             ts = get_timeseries_custom(tid, timestep)
-                            
+
                             if ts is not None and not ts.empty:
                                 st.success(f"✅ Found {len(ts)} data points for {sel}")
-                                
+
                                 # Data filtering options
                                 with st.expander("🔧 Data Filters"):
                                     col1, col2, col3 = st.columns(3)
                                     with col1:
-                                        min_price = st.number_input("Min Price Filter", min_value=0, value=0, key=f"min_price_{sel}")
+                                        min_price = st.number_input("Min Price Filter", min_value=0, value=0,
+                                                                    key=f"min_price_{sel}")
                                     with col2:
-                                        max_price = st.number_input("Max Price Filter", min_value=0, value=int(ts['high'].max()) if not ts.empty else 0, key=f"max_price_{sel}")
+                                        max_price = st.number_input("Max Price Filter", min_value=0,
+                                                                    value=int(ts['high'].max()) if not ts.empty else 0,
+                                                                    key=f"max_price_{sel}")
                                     with col3:
-                                        min_volume = st.number_input("Min Volume Filter", min_value=0, value=0, key=f"min_volume_{sel}")
-                                
+                                        min_volume = st.number_input("Min Volume Filter", min_value=0, value=0,
+                                                                     key=f"min_volume_{sel}")
+
                                 # Apply filters
                                 if min_price > 0 or max_price > 0 or min_volume > 0:
                                     filtered_ts = ts.copy()
@@ -883,58 +925,59 @@ def streamlit_dashboard():
                                     if min_volume > 0:
                                         filtered_ts = filtered_ts[filtered_ts['volume'] >= min_volume]
                                     ts = filtered_ts
-                                
+
                                 create_interactive_chart(
                                     ts,
                                     item_name=sel,
                                     width=chart_width,
                                     height=chart_height
                                 )
-                                
+
                                 # Create enhanced chart - this won't trigger table refresh
-                                #create_enhanced_chart(ts, sel, chart_type, chart_height, chart_width, 
+                                # create_enhanced_chart(ts, sel, chart_type, chart_height, chart_width,
                                 #                    price_color_high, price_color_low, volume_color,
                                 #                    line_width, show_grid, show_volume, volume_opacity)
-                                
+
                                 # Data analysis section
                                 st.subheader("📈 Price Analysis")
-                                
+
                                 # Summary statistics in columns
                                 col1, col2, col3, col4 = st.columns(4)
                                 with col1:
                                     st.metric(
-                                        "Current Price Range", 
+                                        "Current Price Range",
                                         f"{ts['low'].iloc[-1]:,.0f} - {ts['high'].iloc[-1]:,.0f} gp",
                                         f"{((ts['high'].iloc[-1] - ts['low'].iloc[-1]) / ts['low'].iloc[-1] * 100):+.1f}% spread"
                                     )
                                 with col2:
                                     price_change = ts['high'].iloc[-1] - ts['high'].iloc[0]
                                     st.metric(
-                                        "Price Change", 
+                                        "Price Change",
                                         f"{price_change:+,.0f} gp",
                                         f"{(price_change / ts['high'].iloc[0] * 100):+.2f}%"
                                     )
                                 with col3:
                                     avg_volume = ts['volume'].mean()
                                     st.metric(
-                                        "Avg Volume", 
+                                        "Avg Volume",
                                         f"{avg_volume:,.0f}",
                                         f"Total: {ts['volume'].sum():,.0f}"
                                     )
                                 with col4:
                                     volatility = ts['high'].std() / ts['high'].mean() * 100
                                     st.metric(
-                                        "Volatility", 
+                                        "Volatility",
                                         f"{volatility:.1f}%",
                                         "Price stability"
                                     )
-                                
+
                                 # Price distribution
                                 col1, col2 = st.columns(2)
                                 with col1:
                                     st.subheader("📊 Price Distribution")
                                     fig_hist = plt.figure(figsize=(8, 5))
-                                    plt.hist(ts['high'], bins=20, alpha=0.7, color=price_color_high, label='High Prices')
+                                    plt.hist(ts['high'], bins=20, alpha=0.7, color=price_color_high,
+                                             label='High Prices')
                                     plt.hist(ts['low'], bins=20, alpha=0.7, color=price_color_low, label='Low Prices')
                                     plt.xlabel('Price (gp)')
                                     plt.ylabel('Frequency')
@@ -942,19 +985,21 @@ def streamlit_dashboard():
                                     plt.legend()
                                     plt.grid(True, alpha=0.3)
                                     st.pyplot(fig_hist)
-                                
+
                                 with col2:
                                     st.subheader("📈 Moving Averages")
                                     if len(ts) >= 5:
                                         # Calculate moving averages
                                         ts['ma_5'] = ts['high'].rolling(window=5).mean()
                                         ts['ma_10'] = ts['high'].rolling(window=min(10, len(ts))).mean()
-                                        
+
                                         fig_ma = plt.figure(figsize=(8, 5))
-                                        plt.plot(ts['timestamp'], ts['high'], label='High Price', alpha=0.7, color=price_color_high)
+                                        plt.plot(ts['timestamp'], ts['high'], label='High Price', alpha=0.7,
+                                                 color=price_color_high)
                                         plt.plot(ts['timestamp'], ts['ma_5'], label='MA 5', linewidth=2, color='orange')
                                         if len(ts) >= 10:
-                                            plt.plot(ts['timestamp'], ts['ma_10'], label='MA 10', linewidth=2, color='purple')
+                                            plt.plot(ts['timestamp'], ts['ma_10'], label='MA 10', linewidth=2,
+                                                     color='purple')
                                         plt.xlabel('Time')
                                         plt.ylabel('Price (gp)')
                                         plt.title(f'{sel} - Moving Averages')
@@ -965,33 +1010,35 @@ def streamlit_dashboard():
                                         st.pyplot(fig_ma)
                                     else:
                                         st.info("Need at least 5 data points for moving averages")
-                                
+
                                 # Trading opportunities
                                 st.subheader("💡 Trading Insights")
-                                
+
                                 # Calculate potential profit
                                 current_spread = ts['high'].iloc[-1] - ts['low'].iloc[-1]
                                 tax = calculate_ge_tax(ts['high'].iloc[-1])
                                 net_profit = current_spread - tax
-                                
+
                                 col1, col2, col3 = st.columns(3)
                                 with col1:
                                     st.info(f"**Current Spread:** {current_spread:,.0f} gp")
                                     st.info(f"**GE Tax:** {tax:,.0f} gp")
                                     st.info(f"**Net Profit:** {net_profit:,.0f} gp")
-                                
+
                                 with col2:
                                     # Price trend analysis
                                     if len(ts) >= 6:
-                                        recent_trend = "📈 Rising" if ts['high'].iloc[-1] > ts['high'].iloc[-5] else "📉 Falling"
+                                        recent_trend = "📈 Rising" if ts['high'].iloc[-1] > ts['high'].iloc[
+                                            -5] else "📉 Falling"
                                     else:
                                         recent_trend = "📊 Insufficient data"
                                     st.info(f"**Recent Trend:** {recent_trend}")
-                                    
+
                                     # Volume trend
-                                    vol_trend = "📈 Increasing" if ts['volume'].iloc[-1] > ts['volume'].mean() else "📉 Decreasing"
+                                    vol_trend = "📈 Increasing" if ts['volume'].iloc[-1] > ts[
+                                        'volume'].mean() else "📉 Decreasing"
                                     st.info(f"**Volume Trend:** {vol_trend}")
-                                
+
                                 with col3:
                                     # Best time to trade (based on volume)
                                     if len(ts) > 1:
@@ -999,11 +1046,11 @@ def streamlit_dashboard():
                                         st.info(f"**Peak Volume Hour:** {best_hour}:00")
                                     else:
                                         st.info("**Peak Volume Hour:** N/A")
-                                    
+
                                     # Profit score
                                     profit_score = min(100, max(0, (net_profit / 1000) + (ts['volume'].iloc[-1] / 100)))
                                     st.info(f"**Profit Score:** {profit_score:.0f}/100")
-                                
+
                                 # Raw data table
                                 with st.expander("📋 Raw Data"):
                                     # Format the data nicely
@@ -1014,7 +1061,7 @@ def streamlit_dashboard():
                                     display_data['volume'] = display_data['volume'].apply(lambda x: f"{x:,.0f}")
                                     display_data.columns = ['Time', 'High Price', 'Low Price', 'Volume']
                                     st.dataframe(display_data, use_container_width=True, key=f"raw_data_{sel}")
-                                
+
                                 # Export options
                                 col1, col2 = st.columns(2)
                                 with col1:
@@ -1035,34 +1082,35 @@ def streamlit_dashboard():
                                             st.success(f"Added {sel} to watchlist!")
                                         else:
                                             st.info(f"{sel} already in watchlist")
-                            
+
                             else:
                                 st.error("❌ No trend data available for this item")
-                                
+
                                 # Show debug information
                                 with st.expander("🔧 Debug Information"):
                                     st.write(f"**Item:** {sel}")
                                     st.write(f"**Item ID:** {tid}")
                                     st.write(f"**Timestep:** {timestep}")
-                                    
+
                                     # Test API call manually
                                     try:
                                         url = f"https://prices.runescape.wiki/api/v1/osrs/timeseries?id={tid}&timestep={timestep}"
                                         st.write(f"**API URL:** {url}")
-                                        
+
                                         r = requests.get(url, headers=HEADERS, timeout=15)
                                         st.write(f"**Status Code:** {r.status_code}")
-                                        
+
                                         if r.status_code == 200:
                                             data = r.json()
                                             if 'data' in data and data['data']:
                                                 st.write(f"**Data Points:** {len(data['data'])}")
                                                 st.json(data['data'][0])
                                             else:
-                                                st.warning("API returned empty data - this item may not have recent trading activity")
+                                                st.warning(
+                                                    "API returned empty data - this item may not have recent trading activity")
                                         else:
                                             st.error(f"API Error: {r.text}")
-                                            
+
                                     except Exception as e:
                                         st.error(f"API call failed: {e}")
                 else:
@@ -1070,22 +1118,22 @@ def streamlit_dashboard():
         # Discord Alert Status with improved information
         st.subheader("🔔 Discord Alert Status")
         col1, col2, col3, col4 = st.columns(4)
-        
+
         with col1:
             st.info(f"**Active Alerts:** {len(get_alert_history())}")
-        
+
         with col2:
             st.info(f"**Cooldown:** 3 minutes")
-        
+
         with col3:
             alert_status = "🚫 Disabled" if show_all or len(df) > 5 else "✅ Active"
             st.info(f"**Status:** {alert_status}")
-        
+
         with col4:
             if st.button("🔄 Clear Alert History"):
                 clear_alert_history()
                 st.success("Alert history cleared!")
-        
+
         # Alert conditions explanation
         if show_all or len(df) > 5:
             st.warning("""
@@ -1101,13 +1149,13 @@ def streamlit_dashboard():
             - Maximum 3 alerts per refresh
             - 3-minute cooldown per item
             """)
-        
+
         # Show recent alerts with more details
         if get_alert_history():
             with st.expander("📋 Recent Alert History"):
                 alert_data = []
                 now = datetime.datetime.now(datetime.timezone.utc)
-                
+
                 for item, last_time in get_alert_history().items():
                     time_since = (now - last_time).total_seconds()
                     if time_since >= 180:
@@ -1117,7 +1165,7 @@ def streamlit_dashboard():
                         remaining = 180 - time_since
                         status = f"⏳ Cooldown ({remaining:.0f}s)"
                         status_color = "🔴"
-                    
+
                     alert_data.append({
                         'Item': item,
                         'Last Alert': last_time.strftime('%H:%M:%S UTC'),
@@ -1125,15 +1173,15 @@ def streamlit_dashboard():
                         'Status': status,
                         '': status_color
                     })
-                
+
                 if alert_data:
                     alert_df = pd.DataFrame(alert_data)
                     st.dataframe(alert_df, key="detailed_alert_history_table", use_container_width=True)
-        
+
         # Watchlist section with enhanced functionality
         if 'watchlist' in st.session_state and st.session_state.watchlist:
             st.subheader("⭐ Watchlist")
-            
+
             # Quick watchlist overview
             watchlist_data = []
             for item in st.session_state.watchlist:
@@ -1148,11 +1196,11 @@ def streamlit_dashboard():
                         'ROI (%)': f"{row['ROI (%)']:.1f}%",
                         'Volume': f"{row['1h Volume']:,.0f}"
                     })
-            
+
             if watchlist_data:
                 watchlist_df = pd.DataFrame(watchlist_data)
                 st.dataframe(watchlist_df, key="watchlist_table", use_container_width=True)
-            
+
             # Individual watchlist item management
             st.write("**Manage Watchlist Items:**")
             for item in st.session_state.watchlist:
@@ -1170,7 +1218,7 @@ def streamlit_dashboard():
                     if st.button(f"Remove", key=f"remove_{item}"):
                         st.session_state.watchlist.remove(item)
                         st.rerun()
-        
+
         # Performance metrics
         st.subheader("📊 Performance Metrics")
         col1, col2, col3, col4 = st.columns(4)
@@ -1186,10 +1234,10 @@ def streamlit_dashboard():
         with col4:
             high_margin_count = len(df[df['Net Margin'] > MIN_MARGIN * 2])
             st.metric("High Margin Items", f"{high_margin_count}")
-    
+
     else:
         st.warning("No flip opportunities found. Try adjusting your filters or enable 'Show All' to see all items.")
-        
+
         # Show helpful tips when no results
         st.subheader("💡 Tips to Find More Opportunities")
         col1, col2 = st.columns(2)
@@ -1209,6 +1257,52 @@ def streamlit_dashboard():
             - Consider seasonal effects
             - Use "Low-Risk" mode for more results
             """)
+
+def show_charts_page():
+    st.write("Charts page - coming next!")
+
+# Streamlit UI
+def streamlit_dashboard():
+
+    st.set_page_config(page_title="OSRS Flip Assistant", layout="wide")
+
+    # Initialize session state
+    if 'presets' not in st.session_state:
+        st.session_state.presets = {}
+    if 'season_th' not in st.session_state:
+        st.session_state.season_th = 0.0
+    if 'manipulation_th' not in st.session_state:
+        st.session_state.manipulation_th = 7
+    if 'volatility_th' not in st.session_state:
+        st.session_state.volatility_th = 8
+    if 'show_chart_page' not in st.session_state:
+        st.session_state.show_chart_page = False
+    if 'selected_item' not in st.session_state:
+        st.session_state.selected_item = None
+
+    st.session_state['min_margin'] = MIN_MARGIN
+    st.session_state['min_volume'] = MIN_VOLUME
+    st.session_state['min_utility'] = MIN_UTILITY
+
+    # Multi-page navigation
+    pages = {
+        "🔍 Opportunities": "opportunities",
+        "📊 Item Charts": "charts"
+    }
+
+    if 'page' not in st.session_state:
+        st.session_state.page = 'opportunities'
+
+    selected_page = st.selectbox("Navigate to:", list(pages.keys()),
+                                 index=list(pages.values()).index(st.session_state.page))
+    st.session_state.page = pages[selected_page]
+
+    if st.session_state.page == 'opportunities':
+        st.title("💸 OSRS GE Flipping Assistant")
+        show_opportunities_page()
+    elif st.session_state.page == 'charts':
+        st.title("📊 Detailed Item Charts")
+        show_charts_page()
 
 if __name__ == '__main__':
     streamlit_dashboard()
