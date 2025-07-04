@@ -7,6 +7,7 @@ import requests
 import pandas as pd
 import datetime
 import traceback
+from cache_manager import cache_manager  # Add this line
 
 # Configuration
 HEADERS = {
@@ -16,71 +17,91 @@ HEADERS = {
 
 def get_item_mapping():
     """
-    Fetch OSRS item ID-name mapping from RuneScape Wiki API.
+    Fetch OSRS item ID-name mapping from RuneScape Wiki API with caching.
     """
-    print("🔍 Fetching item mapping...")
 
-    url = "https://prices.runescape.wiki/api/v1/osrs/mapping"
-    try:
-        print(f"Trying RuneScape Wiki mapping API: {url}")
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.raise_for_status()
+    def _fetch_item_mapping():
+        """Internal function that does the actual API call"""
+        print("🔍 Fetching item mapping from API...")
 
-        mapping_list = r.json()
-        print(f"✅ Wiki mapping API success: {len(mapping_list)} items")
+        url = "https://prices.runescape.wiki/api/v1/osrs/mapping"
+        try:
+            print(f"Trying RuneScape Wiki mapping API: {url}")
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            r.raise_for_status()
 
-    except Exception as e:
-        print(f"❌ Mapping API failed: {e}")
-        if hasattr(e, 'response') and e.response:
-            print(f"Response text: {e.response.text}")
-        return {}, {}
+            mapping_list = r.json()
+            print(f"✅ Wiki mapping API success: {len(mapping_list)} items")
 
-    try:
-        id2name = {}
-        name2id = {}
+        except Exception as e:
+            print(f"❌ Mapping API failed: {e}")
+            if hasattr(e, 'response') and e.response:
+                print(f"Response text: {e.response.text}")
+            return {}, {}
 
-        for item in mapping_list:
-            if isinstance(item, dict) and 'id' in item and 'name' in item:
-                item_id = str(item['id'])
-                item_name = item['name']
-                id2name[item_id] = item_name
-                name2id[item_name] = item_id
-            else:
-                print(f"Skipping invalid item format: {item}")
+        try:
+            id2name = {}
+            name2id = {}
 
-        print(f"✅ Processed {len(id2name)} item mappings")
-        return id2name, name2id
+            for item in mapping_list:
+                if isinstance(item, dict) and 'id' in item and 'name' in item:
+                    item_id = str(item['id'])
+                    item_name = item['name']
+                    id2name[item_id] = item_name
+                    name2id[item_name] = item_id
+                else:
+                    print(f"Skipping invalid item format: {item}")
 
-    except Exception as e:
-        print(f"❌ Error processing mapping: {e}")
-        traceback.print_exc()
-        return {}, {}
+            print(f"✅ Processed {len(id2name)} item mappings")
+            return id2name, name2id
+
+        except Exception as e:
+            print(f"❌ Error processing mapping: {e}")
+            traceback.print_exc()
+            return {}, {}
+
+    # Use cache with 60-minute TTL (item mapping rarely changes)
+    return cache_manager.cached_call(_fetch_item_mapping, ttl_minutes=60)
 
 
 def get_real_time_prices():
-    """Fetch real-time prices with enhanced error handling and timestamp tracking"""
-    print("💰 Fetching real-time prices...")
+    """Fetch real-time prices with caching (2-minute TTL)"""
 
-    try:
-        r = requests.get("https://prices.runescape.wiki/api/v1/osrs/latest",
-                         headers=HEADERS, timeout=10)
-        r.raise_for_status()
-        data = r.json()
+    def _fetch_real_time_prices():
+        """Internal function that does the actual API call"""
+        print("💰 Fetching real-time prices from API...")
 
-        if isinstance(data, dict) and 'data' in data:
-            price_data = data['data']
-            print(f"✅ Fetched prices for {len(price_data)} items")
+        try:
+            r = requests.get("https://prices.runescape.wiki/api/v1/osrs/latest",
+                             headers=HEADERS, timeout=10)
+            r.raise_for_status()
+            data = r.json()
 
-            timestamp = data.get('timestamp', datetime.datetime.now(datetime.timezone.utc).timestamp())
+            if isinstance(data, dict) and 'data' in data:
+                price_data = data['data']
+                print(f"✅ Fetched prices for {len(price_data)} items")
 
-            return {'data': price_data, 'timestamp': timestamp}
-        else:
-            print(f"Unexpected price data format: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+                timestamp = data.get('timestamp', datetime.datetime.now(datetime.timezone.utc).timestamp())
+
+                return {'data': price_data, 'timestamp': timestamp}
+            else:
+                print(f"Unexpected price data format: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+                return {'data': {}, 'timestamp': datetime.datetime.now(datetime.timezone.utc).timestamp()}
+
+        except Exception as e:
+            print(f"❌ Failed to fetch real-time prices: {e}")
             return {'data': {}, 'timestamp': datetime.datetime.now(datetime.timezone.utc).timestamp()}
 
-    except Exception as e:
-        print(f"❌ Failed to fetch real-time prices: {e}")
-        return {'data': {}, 'timestamp': datetime.datetime.now(datetime.timezone.utc).timestamp()}
+    # Use cache with 2-minute TTL (prices change frequently)
+    result = cache_manager.cached_call(_fetch_real_time_prices, ttl_minutes=2)
+
+    # Always print cache status
+    if result:
+        cache_stats = cache_manager.get_stats()
+        if cache_stats['total_requests'] > 0:
+            print(f"💾 Cache hit rate: {cache_stats['hit_rate']:.1f}%")
+
+    return result
 
 
 def get_summary():
