@@ -505,7 +505,6 @@ def show_opportunities_page():
         }
 
         # Custom table with clickable item names + Pagination
-        st.markdown("### 🔍 Top Flip Opportunities")
         st.caption("💡 Click any item name to view its chart")
 
         # Pagination controls
