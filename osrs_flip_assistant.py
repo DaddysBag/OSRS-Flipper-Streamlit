@@ -504,15 +504,100 @@ def show_opportunities_page():
             )
         }
 
-        # Display with proper numerical sorting
-        st.dataframe(
-            final_display_df,
-            use_container_width=True,
-            key="properly_sorted_flip_table",
-            height=600,
-            hide_index=True,
-            column_config=column_config
-        )
+        # Display interactive table with clickable chart buttons
+        st.markdown("### 📊 Click any chart button to view detailed analysis")
+
+        # Create container for the table
+        with st.container():
+            # Table header
+            header_cols = st.columns([0.5, 2.5, 0.8, 1, 1, 1, 1, 1, 1.2, 1, 1, 1.5, 1.5, 1, 1, 1])
+
+            headers = ['Status', 'Item', '📊 Chart', 'Buy Price', 'Sell Price', 'Net Margin',
+                       'ROI (%)', '1h Volume', 'Risk Adj. Utility', 'Manip. Risk', 'Volatility',
+                       'Offer Price', 'Sell Price', 'Tax', 'Buy/Sell Ratio', 'GE Limit']
+
+            for i, header in enumerate(headers):
+                if i < len(header_cols):
+                    header_cols[i].markdown(f"**{header}**")
+
+            st.markdown("---")
+
+            # Display each row with clickable chart button
+            for idx, (_, row) in enumerate(final_display_df.iterrows()):
+                if idx >= 20:  # Limit to first 20 rows for performance
+                    break
+
+                cols = st.columns([0.5, 2.5, 0.8, 1, 1, 1, 1, 1, 1.2, 1, 1, 1.5, 1.5, 1, 1, 1])
+
+                with cols[0]:  # Status
+                    st.write(row['Status'])
+
+                with cols[1]:  # Item Name
+                    st.write(row['Item'])
+
+                with cols[2]:  # Chart Button - THIS IS THE KEY PART
+                    if st.button("📊", key=f"chart_btn_{idx}_{row['Item']}",
+                                 help=f"View chart for {row['Item']}"):
+                        st.session_state['selected_item'] = row['Item']
+                        st.session_state.page = 'charts'
+                        st.rerun()
+
+                with cols[3]:  # Buy Price
+                    st.write(f"{row['Buy Price']:,}")
+
+                with cols[4]:  # Sell Price
+                    st.write(f"{row['Sell Price']:,}")
+
+                with cols[5]:  # Net Margin
+                    st.write(f"{row['Net Margin']:,}")
+
+                with cols[6]:  # ROI
+                    st.write(f"{row['ROI (%)']:.1f}%")
+
+                with cols[7]:  # Volume
+                    st.write(f"{row['1h Volume']:,}")
+
+                with cols[8]:  # Risk Adjusted Utility
+                    st.write(f"{row['Risk Adjusted Utility']:,.0f}")
+
+                with cols[9]:  # Manipulation Risk
+                    st.write(row.get('Manipulation Risk', 'N/A'))
+
+                with cols[10]:  # Volatility Level
+                    st.write(row.get('Volatility Level', 'N/A'))
+
+                with cols[11]:  # Approx Offer Price
+                    st.write(row['Approx. Offer Price'])
+
+                with cols[12]:  # Approx Sell Price
+                    st.write(row['Approx. Sell Price'])
+
+                with cols[13]:  # Tax
+                    st.write(row['Tax'])
+
+                with cols[14]:  # Buy/Sell Ratio
+                    st.write(row['Buy/Sell Ratio'])
+
+                with cols[15]:  # GE Limit
+                    st.write(row['GE Limit'])
+
+                # Add subtle separator
+                if idx < len(final_display_df) - 1:
+                    st.markdown("<hr style='margin: 5px 0; border: 0.5px solid #333;'>", unsafe_allow_html=True)
+
+        # Show remaining items count if truncated
+        if len(final_display_df) > 20:
+            st.info(f"📋 Showing top 20 items. Total items: {len(final_display_df)}")
+
+            if st.button("📄 Show All Items in Sortable Table"):
+                st.dataframe(
+                    final_display_df,
+                    use_container_width=True,
+                    key="full_flip_table",
+                    height=400,
+                    hide_index=True,
+                    column_config=column_config
+                )
 
         # Enhanced item chart navigation
         st.subheader("📊 Quick Chart Access")
