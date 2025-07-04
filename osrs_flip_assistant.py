@@ -504,31 +504,110 @@ def show_opportunities_page():
             )
         }
 
-        # Display table with row selection capability
-        selection = st.dataframe(
-            final_display_df,
-            use_container_width=True,
-            key="selectable_flip_table",
-            height=600,
-            hide_index=True,
-            column_config=column_config,
-            on_select="rerun",
-            selection_mode="single-row"
-        )
+        # Custom table with clickable item names (GE Tracker style)
+        st.markdown("### 🔍 Top Flip Opportunities")
+        st.caption("💡 Click any item name to view its chart")
 
-        # Handle row selection
-        if len(selection.selection.rows) > 0:
-            selected_row_idx = selection.selection.rows[0]
-            selected_item = final_display_df.iloc[selected_row_idx]['Item']
+        # Add CSS to make buttons look like table cells
+        st.markdown("""
+        <style>
+        /* Make item name buttons look like clickable links in a table */
+        .item-name-btn {
+            background: none !important;
+            border: none !important;
+            color: #4CAF50 !important;
+            text-decoration: none !important;
+            cursor: pointer !important;
+            font-weight: 500 !important;
+            padding: 4px 8px !important;
+            text-align: left !important;
+            width: 100% !important;
+            font-family: monospace !important;
+        }
 
-            st.success(f"✅ Selected: **{selected_item}**")
+        .item-name-btn:hover {
+            color: #45a049 !important;
+            background-color: rgba(76, 175, 80, 0.1) !important;
+            text-decoration: underline !important;
+        }
 
-            col1, col2 = st.columns([3, 1])
-            with col2:
-                if st.button("📈 View Chart", type="primary", use_container_width=True):
-                    st.session_state['selected_item'] = selected_item
-                    st.session_state.page = 'charts'
-                    st.rerun()
+        .table-row {
+            border-bottom: 1px solid #333 !important;
+            padding: 2px 0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # Create table header
+        header_cols = st.columns([0.4, 2, 1, 1, 1.2, 1, 1, 1.5, 1.2, 1.2, 1.2, 1.2])
+        headers = ['Status', 'Item Name', 'Buy Price', 'Sell Price', 'Net Margin', 'ROI (%)',
+                   '1h Volume', 'Risk Adj. Utility', 'Manip. Risk', 'Volatility', 'Tax', 'GE Limit']
+
+        for i, header in enumerate(headers):
+            if i < len(header_cols):
+                header_cols[i].markdown(f"**{header}**")
+
+        st.markdown("---")
+
+        # Create table rows with clickable item names
+        for idx, (_, row) in enumerate(final_display_df.head(25).iterrows()):  # Limit to 25 for performance
+            with st.container():
+                cols = st.columns([0.4, 2, 1, 1, 1.2, 1, 1, 1.5, 1.2, 1.2, 1.2, 1.2])
+
+                with cols[0]:  # Status
+                    st.write(row['Status'])
+
+                with cols[1]:  # Clickable Item Name
+                    item_name = row['Item']
+                    if st.button(
+                            item_name,
+                            key=f"item_click_{idx}_{hash(item_name)}",  # Use hash to avoid key conflicts
+                            help=f"Click to view {item_name} chart",
+                            use_container_width=True
+                    ):
+                        st.session_state['selected_item'] = item_name
+                        st.session_state.page = 'charts'
+                        st.rerun()
+
+                with cols[2]:  # Buy Price
+                    st.write(f"{row['Buy Price']:,}")
+
+                with cols[3]:  # Sell Price
+                    st.write(f"{row['Sell Price']:,}")
+
+                with cols[4]:  # Net Margin
+                    st.write(f"**{row['Net Margin']:,}**")
+
+                with cols[5]:  # ROI
+                    roi_color = "🟢" if row['ROI (%)'] >= 5 else "🟡" if row['ROI (%)'] >= 2 else "🔴"
+                    st.write(f"{roi_color} {row['ROI (%)']:.1f}%")
+
+                with cols[6]:  # Volume
+                    st.write(f"{row['1h Volume']:,}")
+
+                with cols[7]:  # Risk Adjusted Utility
+                    st.write(f"{row['Risk Adjusted Utility']:,.0f}")
+
+                with cols[8]:  # Manipulation Risk
+                    risk = row.get('Manipulation Risk', 'N/A')
+                    risk_color = "🟢" if risk == "Normal" else "🟡" if risk == "Low" else "🔴"
+                    st.write(f"{risk_color} {risk}")
+
+                with cols[9]:  # Volatility Level
+                    vol = row.get('Volatility Level', 'N/A')
+                    vol_color = "🟢" if "Low" in str(vol) else "🟡" if "Medium" in str(vol) else "🔴"
+                    st.write(f"{vol_color} {vol}")
+
+                with cols[10]:  # Tax
+                    st.write(row['Tax'])
+
+                with cols[11]:  # GE Limit
+                    st.write(row['GE Limit'])
+
+        # Show count of items
+        if len(final_display_df) > 25:
+            st.info(
+                f"📋 Showing top 25 of {len(final_display_df)} items for performance. Use filters to narrow results.")
 
         # Enhanced item chart navigation
         st.subheader("📊 Quick Chart Access")
