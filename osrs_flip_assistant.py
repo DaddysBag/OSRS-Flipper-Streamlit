@@ -627,8 +627,18 @@ def show_opportunities_page():
                 else:
                     return "🔴 Caution"
 
-        # Apply the enhanced color coding
-        display_df['Status'] = display_df.apply(get_enhanced_color_code, axis=1)
+        # Apply enhanced status badges
+        def create_status_badge(row):
+            status = get_enhanced_color_code(row)
+
+            if "Excellent" in status:
+                return "🟢 EXCELLENT"
+            elif "Good" in status:
+                return "🟡 GOOD"
+            else:
+                return "🔴 CAUTION"
+
+        display_df['Status'] = display_df.apply(create_status_badge, axis=1)
 
         # Get buy limits for display
         limits = get_buy_limits()
@@ -641,13 +651,27 @@ def show_opportunities_page():
         display_df['ROI (formatted)'] = display_df['ROI (%)'].apply(lambda x: f"{x:.1f}%")
         display_df['Volume (formatted)'] = display_df['1h Volume'].apply(lambda x: f"{x:,}")
 
-        # Add additional calculated columns
+        # Enhanced data freshness indicators
+        def format_price_with_freshness(price, age_minutes):
+            if age_minutes <= 1:
+                freshness_class = "data-fresh"
+                freshness_icon = "🟢"
+            elif age_minutes <= 3:
+                freshness_class = "data-aging"
+                freshness_icon = "🟡"
+            else:
+                freshness_class = "data-stale"
+                freshness_icon = "🔴"
+
+            return f'{freshness_icon} {price:,} gp <small>({age_minutes:.1f}m ago)</small>'
+
         display_df['Approx. Offer Price'] = display_df.apply(
-            lambda row: f"{row['Buy Price']:,} ({row['Low Age (min)']:.1f}m ago)",
+            lambda row: format_price_with_freshness(row['Buy Price'], row['Low Age (min)']),
             axis=1)
         display_df['Approx. Sell Price'] = display_df.apply(
-            lambda row: f"{row['Sell Price']:,} ({row['High Age (min)']:.1f}m ago)",
+            lambda row: format_price_with_freshness(row['Sell Price'], row['High Age (min)']),
             axis=1)
+        display_df['Tax'] = display_df['Sell Price'].apply(lambda x: f"{calculate_ge_tax(x):,}")
         display_df['Tax'] = display_df['Sell Price'].apply(lambda x: f"{calculate_ge_tax(x):,}")
         display_df['GE Limit'] = display_df['Item'].apply(
             lambda x: f"{limits.get(x, 'N/A'):,}" if limits.get(x) else "N/A")
@@ -657,13 +681,13 @@ def show_opportunities_page():
         )
 
         # Add Chart column before creating display dataframe
-        display_df['Chart'] = display_df['Item'].apply(lambda x: f"📊 View")
+        display_df['Quick Actions'] = display_df['Item'].apply(lambda x: "📊 Chart | ⭐ Watch | 📋 Copy")
 
         # Select columns for display - use original numerical columns for sorting
         columns_to_display = [
             'Status',
             'Item',
-            'Chart',  # ← NEW: Add Chart column
+            'Quick Actions',
             'Buy Price',
             'Sell Price',
             'Net Margin',
@@ -675,7 +699,6 @@ def show_opportunities_page():
             'Approx. Offer Price',
             'Approx. Sell Price',
             'Tax',
-            'Buy/Sell Ratio',
             'GE Limit'
         ]
 
@@ -2379,6 +2402,134 @@ def inject_custom_css():
             outline: 2px solid #4CAF50 !important;
             outline-offset: 2px !important;
         }
+        
+        .stApp {
+            will-change: auto !important;
+        }
+        
+        /* Lazy loading placeholders */
+        .lazy-placeholder {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%) !important;
+            background-size: 200% 100% !important;
+            animation: shimmer 1.5s infinite !important;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        /* Enhanced scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px !important;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-radius: 6px !important;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(76, 175, 80, 0.3) !important;
+            border-radius: 6px !important;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(76, 175, 80, 0.5) !important;
+        }
+        
+        /* Performance indicators */
+        .performance-badge {
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            background: rgba(76, 175, 80, 0.9) !important;
+            color: white !important;
+            padding: 8px 12px !important;
+            border-radius: 20px !important;
+            font-size: 0.8rem !important;
+            font-weight: 500 !important;
+            z-index: 1000 !important;
+            backdrop-filter: blur(10px) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        /* Enhanced data freshness indicators */
+        .data-fresh {
+            color: #27ae60 !important;
+            font-weight: 600 !important;
+        }
+        
+        .data-stale {
+            color: #e74c3c !important;
+            font-weight: 600 !important;
+        }
+        
+        .data-aging {
+            color: #f39c12 !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Advanced table row highlighting */
+        .profit-excellent {
+            background: linear-gradient(90deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05)) !important;
+            border-left: 3px solid #27ae60 !important;
+        }
+        
+        .profit-good {
+            background: linear-gradient(90deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)) !important;
+            border-left: 3px solid #f39c12 !important;
+        }
+        
+        .profit-caution {
+            background: linear-gradient(90deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)) !important;
+            border-left: 3px solid #e74c3c !important;
+        }
+        
+        /* Advanced status badges */
+        .status-badge {
+            display: inline-block !important;
+            padding: 4px 10px !important;
+            border-radius: 12px !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .status-excellent {
+            background: linear-gradient(135deg, #27ae60, #2ecc71) !important;
+            color: white !important;
+        }
+        
+        .status-good {
+            background: linear-gradient(135deg, #f39c12, #e67e22) !important;
+            color: white !important;
+        }
+        
+        .status-caution {
+            background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+            color: white !important;
+        }
+        
+        /* Quick action buttons */
+        .quick-action {
+            background: rgba(52, 152, 219, 0.1) !important;
+            border: 1px solid rgba(52, 152, 219, 0.3) !important;
+            color: #3498db !important;
+            padding: 6px 12px !important;
+            border-radius: 6px !important;
+            font-size: 0.8rem !important;
+            margin: 2px !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .quick-action:hover {
+            background: rgba(52, 152, 219, 0.2) !important;
+            border-color: #3498db !important;
+            transform: translateY(-1px) !important;
+        }
 
     </style>
     """, unsafe_allow_html=True)
@@ -2569,6 +2720,45 @@ def show_info_message(message, icon="ℹ️"):
     </div>
     """, unsafe_allow_html=True)
 
+
+def create_performance_monitor():
+    """Create a performance monitoring badge"""
+
+    # Get current performance metrics
+    from cache_manager import cache_manager
+    cache_stats = cache_manager.get_stats()
+
+    # Calculate performance score
+    hit_rate = cache_stats.get('hit_rate', 0)
+    if hit_rate >= 80:
+        performance_status = "🚀 Excellent"
+        performance_color = "#27ae60"
+    elif hit_rate >= 60:
+        performance_status = "⚡ Good"
+        performance_color = "#f39c12"
+    else:
+        performance_status = "🐌 Slow"
+        performance_color = "#e74c3c"
+
+    st.markdown(f"""
+    <div class="performance-badge" style="background: {performance_color};">
+        {performance_status} ({hit_rate:.0f}%)
+    </div>
+    """, unsafe_allow_html=True)
+
+def add_copy_functionality():
+    """Add copy to clipboard functionality"""
+    st.markdown("""
+    <script>
+        function copyItemData(itemName, buyPrice, sellPrice) {
+            const copyText = itemName + ': Buy ' + buyPrice + ', Sell ' + sellPrice;
+            navigator.clipboard.writeText(copyText).then(function() {
+                alert('Copied: ' + copyText);
+            });
+        }
+    </script>
+    """, unsafe_allow_html=True)
+
 def show_success_message(message, icon="✅"):
     """Show a beautiful success message"""
     st.markdown(f"""
@@ -2614,6 +2804,12 @@ def streamlit_dashboard():
 
     # Inject our custom CSS
     inject_custom_css()
+
+    # Add performance monitoring
+    create_performance_monitor()
+
+    # Add copy functionality
+    add_copy_functionality()
 
     # Add theme toggle and advanced interactions
     st.markdown("""
