@@ -241,79 +241,158 @@ def show_opportunities_page():
             else:
                 st.info("ge_limits.json already exists")
 
-    # Preset load/save
-    ps = st.sidebar.selectbox("Load Preset", [''] + list(st.session_state.presets.keys()))
-    if ps:
-        m, v, u, season = st.session_state.presets[ps]
-        MIN_MARGIN, MIN_VOLUME, MIN_UTILITY = m, v, u
-        st.session_state['season_th'] = season
+        # Enhanced Sidebar with Better Organization
+        st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.sidebar.markdown("### 🎯 Trading Strategy")
 
-    name_in = st.sidebar.text_input("Preset Name")
-    if st.sidebar.button("Save Preset") and name_in:
-        st.session_state.presets[name_in] = (MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, st.session_state.get('season_th', 0))
-        st.sidebar.success(f"Saved preset: {name_in}")
+        # Strategy mode selection with descriptions
+        mode_descriptions = {
+            "Custom": "💡 Use custom filter settings below",
+            "Low-Risk": "💡 Conservative trading with stable items",
+            "High-ROI": "💡 Higher returns with increased risk",
+            "Passive Overnight": "💡 Set-and-forget overnight flips",
+            "High Volume": "💡 Focus on liquid, high-volume items"
+        }
 
-    st.sidebar.markdown("---")
-
-    # Mode selection - cleaner organization
-    st.sidebar.markdown("### 🎯 Trading Strategy")
-    mode = st.sidebar.selectbox("Select Mode", ["Custom", "Low-Risk", "High-ROI", "Passive Overnight", "High Volume"])
-
-    if mode == "Low-Risk":
-        m, v, u = 200, 1000, 2000
-        st.sidebar.caption("💡 Conservative trading with stable items")
-    elif mode == "High-ROI":
-        m, v, u = 1000, 500, 5000
-        st.sidebar.caption("💡 Higher returns with increased risk")
-    elif mode == "Passive Overnight":
-        m, v, u = 300, 200, 1000
-        st.sidebar.caption("💡 Set-and-forget overnight flips")
-    elif mode == "High Volume":
-        m, v, u = 100, 1000, 1000
-        st.sidebar.caption("💡 Focus on liquid, high-volume items")
-    else:
-        m, v, u = MIN_MARGIN, MIN_VOLUME, MIN_UTILITY
-        st.sidebar.caption("💡 Use custom filter settings below")
-
-        # Filter controls - only update session state when values actually change
-        new_min_margin = st.sidebar.slider("Min Net Margin", 0, 5000, m, 50)
-        if new_min_margin != st.session_state.get('min_margin', m):
-            st.session_state['min_margin'] = new_min_margin
-        MIN_MARGIN = st.session_state.get('min_margin', m)
-
-        new_min_volume = st.sidebar.slider("Min Volume/hr", 0, 20000, v, 100)
-        if new_min_volume != st.session_state.get('min_volume', v):
-            st.session_state['min_volume'] = new_min_volume
-        MIN_VOLUME = st.session_state.get('min_volume', v)
-
-        new_min_utility = st.sidebar.slider("Min Utility", 0, 50000, u, 500)
-        if new_min_utility != st.session_state.get('min_utility', u):
-            st.session_state['min_utility'] = new_min_utility
-        MIN_UTILITY = st.session_state.get('min_utility', u)
-
-        new_season_th = st.sidebar.slider("Min Season Ratio", 0.0, 5.0,
-                                          st.session_state.get('season_th', 0.0), 0.1)
-        if new_season_th != st.session_state.get('season_th', 0.0):
-            st.session_state['season_th'] = new_season_th
-
-        st.sidebar.subheader("🔬 Advanced Risk Filters")
-        new_manipulation_th = st.sidebar.slider(
-            "Max Manipulation Score", 0, 10,
-            st.session_state.get('manipulation_th', 7), 1,
-            help="Lower = stricter filtering of potentially manipulated items"
+        mode = st.sidebar.selectbox(
+            "Select Trading Mode",
+            ["Custom", "Low-Risk", "High-ROI", "Passive Overnight", "High Volume"],
+            help="Choose your trading strategy"
         )
-        if new_manipulation_th != st.session_state.get('manipulation_th', 7):
-            st.session_state['manipulation_th'] = new_manipulation_th
 
-        new_volatility_th = st.sidebar.slider(
-            "Max Volatility Score", 0, 10,
-            st.session_state.get('volatility_th', 8), 1,
-            help="Lower = stricter filtering of volatile items"
+        # Show mode description
+        st.sidebar.caption(mode_descriptions[mode])
+
+        # Apply mode-specific values
+        if mode == "Low-Risk":
+            m, v, u = 200, 1000, 2000
+        elif mode == "High-ROI":
+            m, v, u = 1000, 500, 5000
+        elif mode == "Passive Overnight":
+            m, v, u = 300, 200, 1000
+        elif mode == "High Volume":
+            m, v, u = 100, 1000, 1000
+        else:
+            m, v, u = MIN_MARGIN, MIN_VOLUME, MIN_UTILITY
+
+        st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+        # Custom Filters Section (only show if Custom mode)
+        if mode == "Custom":
+            st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
+            st.sidebar.markdown("### 💰 Profit Filters")
+
+            # Filter controls with better formatting
+            new_min_margin = st.sidebar.slider(
+                "Min Net Margin (gp)",
+                0, 5000,
+                st.session_state.get('min_margin', m),
+                50,
+                help="Minimum profit after GE tax"
+            )
+            if new_min_margin != st.session_state.get('min_margin', m):
+                st.session_state['min_margin'] = new_min_margin
+            MIN_MARGIN = st.session_state.get('min_margin', m)
+
+            new_min_volume = st.sidebar.slider(
+                "Min Volume/hr",
+                0, 20000,
+                st.session_state.get('min_volume', v),
+                100,
+                help="Minimum hourly trading volume"
+            )
+            if new_min_volume != st.session_state.get('min_volume', v):
+                st.session_state['min_volume'] = new_min_volume
+            MIN_VOLUME = st.session_state.get('min_volume', v)
+
+            new_min_utility = st.sidebar.slider(
+                "Min Utility Score",
+                0, 50000,
+                st.session_state.get('min_utility', u),
+                500,
+                help="Minimum utility score (profit × volume)"
+            )
+            if new_min_utility != st.session_state.get('min_utility', u):
+                st.session_state['min_utility'] = new_min_utility
+            MIN_UTILITY = st.session_state.get('min_utility', u)
+
+            new_season_th = st.sidebar.slider(
+                "Min Season Ratio",
+                0.0, 5.0,
+                st.session_state.get('season_th', 0.0),
+                0.1,
+                help="Seasonal price adjustment factor"
+            )
+            if new_season_th != st.session_state.get('season_th', 0.0):
+                st.session_state['season_th'] = new_season_th
+
+            st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+            # Risk Management Section
+            st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
+            st.sidebar.markdown("### 🔬 Risk Management")
+
+            new_manipulation_th = st.sidebar.slider(
+                "Max Manipulation Score",
+                0, 10,
+                st.session_state.get('manipulation_th', 7),
+                1,
+                help="Lower = stricter filtering of potentially manipulated items"
+            )
+            if new_manipulation_th != st.session_state.get('manipulation_th', 7):
+                st.session_state['manipulation_th'] = new_manipulation_th
+
+            new_volatility_th = st.sidebar.slider(
+                "Max Volatility Score",
+                0, 10,
+                st.session_state.get('volatility_th', 8),
+                1,
+                help="Lower = stricter filtering of volatile items"
+            )
+            if new_volatility_th != st.session_state.get('volatility_th', 8):
+                st.session_state['volatility_th'] = new_volatility_th
+
+            st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+        # Preset Management Section
+        st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.sidebar.markdown("### 📋 Preset Management")
+
+        # Preset load/save with better UI
+        preset_options = [''] + list(st.session_state.presets.keys())
+        ps = st.sidebar.selectbox(
+            "Load Saved Preset",
+            preset_options,
+            help="Load previously saved filter configurations"
         )
-        if new_volatility_th != st.session_state.get('volatility_th', 8):
-            st.session_state['volatility_th'] = new_volatility_th
 
-    show_all = st.sidebar.checkbox("Show All", value=False)
+        if ps:
+            m, v, u, season = st.session_state.presets[ps]
+            MIN_MARGIN, MIN_VOLUME, MIN_UTILITY = m, v, u
+            st.session_state['season_th'] = season
+            st.sidebar.success(f"✅ Loaded preset: {ps}")
+
+        # Save new preset
+        col1, col2 = st.sidebar.columns([2, 1])
+        with col1:
+            name_in = st.text_input("Preset Name", placeholder="Enter name...", label_visibility="collapsed")
+        with col2:
+            if st.button("💾 Save", help="Save current settings as preset") and name_in:
+                st.session_state.presets[name_in] = (MIN_MARGIN, MIN_VOLUME, MIN_UTILITY,
+                                                     st.session_state.get('season_th', 0))
+                st.sidebar.success(f"💾 Saved: {name_in}")
+
+        st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+        # Display Options Section
+        st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        st.sidebar.markdown("### ⚙️ Display Options")
+
+        show_all = st.sidebar.checkbox(
+            "Show All Items",
+            value=False,
+            help="Display all items regardless of filters"
+        )
 
     # Auto-refresh
     auto_refresh = st.sidebar.checkbox("Auto-refresh (30s)")
@@ -1720,6 +1799,63 @@ def inject_custom_css():
         .css-1d391kg .stCaption {
             color: #bbb !important;
             font-style: italic !important;
+        }
+        
+        /* Enhanced Filter Panel Styling */
+        .filter-section {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            padding: 20px !important;
+            margin-bottom: 20px !important;
+        }
+        
+        .filter-section h3 {
+            color: #4CAF50 !important;
+            font-size: 1.1rem !important;
+            margin-bottom: 15px !important;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.2) !important;
+            padding-bottom: 8px !important;
+        }
+        
+        /* Strategy mode buttons */
+        .strategy-button {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 8px !important;
+            padding: 10px 15px !important;
+            margin: 5px !important;
+            color: #e0e0e0 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            text-align: center !important;
+        }
+        
+        .strategy-button:hover {
+            border-color: #4CAF50 !important;
+            background: rgba(76, 175, 80, 0.1) !important;
+        }
+        
+        .strategy-button.active {
+            background: #4CAF50 !important;
+            border-color: #4CAF50 !important;
+            color: white !important;
+        }
+        
+        /* Filter input styling */
+        .stSlider > div > div > div > div > div {
+            background: #4CAF50 !important;
+        }
+        
+        .stSlider > div > div > div > div {
+            background: rgba(76, 175, 80, 0.2) !important;
+        }
+        
+        /* Selectbox custom styling */
+        .stSelectbox > div > div > div {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #e0e0e0 !important;
         }
 
     </style>
