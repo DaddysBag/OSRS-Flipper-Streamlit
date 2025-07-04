@@ -500,7 +500,10 @@ def show_opportunities_page():
 
     # Display results with color coding
     if not df.empty:
-        st.subheader("🔍 Top Flip Opportunities")
+        # Create enhanced table header
+        avg_margin = df['Net Margin'].mean()
+        avg_risk_util = df['Risk Adjusted Utility'].mean() if 'Risk Adjusted Utility' in df.columns else 0
+        create_table_header(len(df), avg_margin, avg_risk_util)
 
         # Add color coding explanation
         col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -547,31 +550,31 @@ def show_opportunities_page():
             if 'Manipulation Score' in row and 'Volatility Score' in row:
                 manipulation, volatility = row['Manipulation Score'], row['Volatility Score']
 
-                # High risk factors take priority
+                # Enhanced status with detailed categories
                 if manipulation >= 7 or volatility >= 8:
-                    return "⚠️"  # Warning for high risk
+                    return "🔴 High Risk"  # Red for high risk
                 elif data_age > 5:
-                    return "🔴"  # Red for old data
+                    return "🔴 Stale Data"  # Red for old data
                 elif data_age > 2:
-                    return "🟡"  # Yellow for aging data
+                    return "🟡 Aging Data"  # Yellow for aging data
                 elif roi >= 5 and volume >= 1000 and manipulation <= 3 and volatility <= 4:
-                    return "🟢"  # Green for excellent low-risk opportunities
+                    return "🟢 Excellent"  # Green for excellent low-risk opportunities
                 elif roi >= 2 and volume >= 500:
-                    return "🟡"  # Yellow for good
+                    return "🟡 Good"  # Yellow for good
                 else:
-                    return "🔴"  # Red for caution
+                    return "🔴 Caution"  # Red for caution
             else:
                 # Fall back to original logic if enhanced columns don't exist
                 if data_age > 5:
-                    return "🔴"
+                    return "🔴 Stale Data"
                 elif data_age > 2:
-                    return "🟡"
+                    return "🟡 Aging Data"
                 elif roi >= 5 and volume >= 1000:
-                    return "🟢"
+                    return "🟢 Excellent"
                 elif roi >= 2 and volume >= 500:
-                    return "🟡"
+                    return "🟡 Good"
                 else:
-                    return "🔴"
+                    return "🔴 Caution"
 
         # Apply the enhanced color coding
         display_df['Status'] = display_df.apply(get_enhanced_color_code, axis=1)
@@ -1232,7 +1235,8 @@ def show_opportunities_page():
                 else:
                     st.error(f"❌ Item ID not found for '{sel}'")
         # Discord Alert Status with improved information
-        st.subheader("🔔 Discord Alert Status")
+        st.markdown('<div class="alert-success">', unsafe_allow_html=True)
+        st.markdown("### 🔔 Discord Alert Status")
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
@@ -1250,21 +1254,27 @@ def show_opportunities_page():
                 clear_alert_history()
                 st.success("Alert history cleared!")
 
-        # Alert conditions explanation
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Alert conditions explanation with enhanced styling
         if show_all or len(df) > 5:
-            st.warning("""
-            🚫 **Discord Alerts Disabled**
-            - Alerts are disabled when "Show All" is enabled
-            - Alerts are disabled when showing more than 5 items
-            - This prevents spam when displaying large datasets
-            """)
+            st.markdown("""
+            <div class="alert-warning">
+            <strong>🚫 Discord Alerts Disabled</strong><br>
+            • Alerts are disabled when "Show All" is enabled<br>
+            • Alerts are disabled when showing more than 5 items<br>
+            • This prevents spam when displaying large datasets
+            </div>
+            """, unsafe_allow_html=True)
         else:
-            st.success("""
-            ✅ **Discord Alerts Active**
-            - Will alert on exceptional opportunities (2x minimum margin)
-            - Maximum 3 alerts per refresh
-            - 3-minute cooldown per item
-            """)
+            st.markdown("""
+            <div class="alert-success">
+            <strong>✅ Discord Alerts Active</strong><br>
+            • Will alert on exceptional opportunities (2x minimum margin)<br>
+            • Maximum 3 alerts per refresh<br>
+            • 3-minute cooldown per item
+            </div>
+            """, unsafe_allow_html=True)
 
         # Show recent alerts with more details
         if get_alert_history():
@@ -1857,6 +1867,125 @@ def inject_custom_css():
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             color: #e0e0e0 !important;
         }
+        
+        .results-container {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+            margin: 20px 0 !important;
+        }
+        
+        .table-header {
+            background: rgba(76, 175, 80, 0.1) !important;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.3) !important;
+            padding: 15px 20px !important;
+            margin-bottom: 0 !important;
+        }
+        
+        .table-header h2 {
+            color: #4CAF50 !important;
+            font-size: 1.5rem !important;
+            margin-bottom: 5px !important;
+        }
+        
+        .table-header p {
+            color: #bbb !important;
+            margin: 0 !important;
+            font-size: 0.9rem !important;
+        }
+        
+        /* Status indicator styling */
+        .status-excellent {
+            background: #27ae60 !important;
+            color: white !important;
+            padding: 4px 8px !important;
+            border-radius: 12px !important;
+            font-size: 0.8rem !important;
+            font-weight: 500 !important;
+        }
+        
+        .status-good {
+            background: #f39c12 !important;
+            color: white !important;
+            padding: 4px 8px !important;
+            border-radius: 12px !important;
+            font-size: 0.8rem !important;
+            font-weight: 500 !important;
+        }
+        
+        .status-caution {
+            background: #e74c3c !important;
+            color: white !important;
+            padding: 4px 8px !important;
+            border-radius: 12px !important;
+            font-size: 0.8rem !important;
+            font-weight: 500 !important;
+        }
+        
+        /* DataFrames styling */
+        .stDataFrame {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 8px !important;
+        }
+        
+        .stDataFrame table {
+            background: transparent !important;
+        }
+        
+        .stDataFrame th {
+            background: rgba(76, 175, 80, 0.1) !important;
+            color: #4CAF50 !important;
+            font-weight: 600 !important;
+            border-bottom: 2px solid rgba(76, 175, 80, 0.3) !important;
+        }
+        
+        .stDataFrame td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            color: #e0e0e0 !important;
+        }
+        
+        .stDataFrame tr:hover {
+            background: rgba(76, 175, 80, 0.05) !important;
+        }
+        
+        /* Performance metrics cards */
+        .metrics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+            gap: 20px !important;
+            margin: 30px 0 !important;
+        }
+        
+        /* Alert panels */
+        .alert-success {
+            background: rgba(40, 167, 69, 0.1) !important;
+            border: 1px solid rgba(40, 167, 69, 0.3) !important;
+            border-radius: 8px !important;
+            padding: 15px !important;
+            margin: 20px 0 !important;
+            color: #28a745 !important;
+        }
+        
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.1) !important;
+            border: 1px solid rgba(255, 193, 7, 0.3) !important;
+            border-radius: 8px !important;
+            padding: 15px !important;
+            margin: 20px 0 !important;
+            color: #ffc107 !important;
+        }
+        
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.1) !important;
+            border: 1px solid rgba(220, 53, 69, 0.3) !important;
+            border-radius: 8px !important;
+            padding: 15px !important;
+            margin: 20px 0 !important;
+            color: #dc3545 !important;
+        }
 
     </style>
     """, unsafe_allow_html=True)
@@ -1907,6 +2036,36 @@ def create_enhanced_header():
             st.success(alert_status)
         else:
             st.warning(alert_status)
+
+
+def create_table_header(total_items, avg_margin, avg_risk_util):
+    """Create enhanced table header with summary info"""
+
+    st.markdown("""
+    <div class="results-container">
+        <div class="table-header">
+            <h2>🔍 Top Flip Opportunities</h2>
+            <p>Real-time market analysis with risk assessment</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Quick stats row
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Total Items", total_items)
+
+    with col2:
+        st.metric("Avg Margin", f"{avg_margin:,.0f} gp")
+
+    with col3:
+        st.metric("Avg Risk Adj. Utility", f"{avg_risk_util:,.0f}")
+
+    with col4:
+        # Calculate safe items count
+        safe_items = "📊 Loading..."
+        st.metric("Analysis", safe_items)
 
 # Streamlit UI
 def streamlit_dashboard():
