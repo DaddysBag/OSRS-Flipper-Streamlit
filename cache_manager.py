@@ -15,7 +15,11 @@ class CacheManager:
     """Manages caching with TTL (Time To Live) for API responses and calculations"""
 
     def __init__(self):
-        # Initialize cache in session state if not exists
+        # Don't initialize session state here - do it lazily when first accessed
+        pass
+
+    def _ensure_cache_initialized(self):
+        """Ensure cache is initialized in session state"""
         if 'osrs_cache' not in st.session_state:
             st.session_state.osrs_cache = {}
 
@@ -41,6 +45,8 @@ class CacheManager:
 
     def get(self, func_name: str, ttl_minutes: int, *args, **kwargs) -> Optional[Any]:
         """Get cached result if available and not expired"""
+        self._ensure_cache_initialized()  # Add this line
+
         cache_key = self._get_cache_key(func_name, *args, **kwargs)
 
         st.session_state.cache_stats['total_requests'] += 1
@@ -62,6 +68,8 @@ class CacheManager:
 
     def set(self, func_name: str, ttl_minutes: int, data: Any, *args, **kwargs) -> None:
         """Store data in cache with TTL"""
+        self._ensure_cache_initialized()  # Add this line
+
         cache_key = self._get_cache_key(func_name, *args, **kwargs)
 
         expires = datetime.datetime.now() + datetime.timedelta(minutes=ttl_minutes)
@@ -92,6 +100,8 @@ class CacheManager:
 
     def clear_cache(self, pattern: Optional[str] = None) -> int:
         """Clear cache entries, optionally matching a pattern"""
+        self._ensure_cache_initialized()  # Add this line
+
         if pattern is None:
             count = len(st.session_state.osrs_cache)
             st.session_state.osrs_cache = {}
@@ -110,6 +120,8 @@ class CacheManager:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get cache performance statistics"""
+        self._ensure_cache_initialized()  # Add this line
+
         stats = st.session_state.cache_stats.copy()
         cache_size = len(st.session_state.osrs_cache)
 
