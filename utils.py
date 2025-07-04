@@ -5,6 +5,7 @@ Helper functions for GE tax, buy limits, and item categorization
 
 import json
 import math
+import pandas as pd
 
 # Category definitions
 CATEGORY_KEYWORDS = {
@@ -16,9 +17,20 @@ CATEGORY_KEYWORDS = {
 
 
 def calculate_ge_tax(price):
-    """Calculate Grand Exchange tax (2% capped at 5M)"""
-    tax = math.floor(price * 0.02)
-    return min(tax, 5_000_000)
+    """Calculate Grand Exchange tax (2% capped at 5M) with NaN handling"""
+    # Handle NaN, None, and invalid values
+    if price is None or pd.isna(price) or not isinstance(price, (int, float)):
+        return 0
+
+    # Handle negative or zero prices
+    if price <= 0:
+        return 0
+
+    try:
+        tax = math.floor(float(price) * 0.02)
+        return min(tax, 5_000_000)
+    except (ValueError, TypeError, OverflowError):
+        return 0
 
 
 def categorize_item(name):

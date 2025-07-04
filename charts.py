@@ -148,11 +148,33 @@ def create_interactive_chart(ts: pd.DataFrame,
                 st.session_state['chart_reload_needed'] = True
                 st.rerun()
 
-    # Data validation
+    # Enhanced Data validation and cleaning
     if ts is None or ts.empty:
         st.error("📊 No chart data available")
         return
 
+    # Clean the data - remove NaN values and invalid entries
+    ts_clean = ts.copy()
+
+    # Remove rows with NaN in critical columns
+    ts_clean = ts_clean.dropna(subset=['high', 'low', 'volume', 'timestamp'])
+
+    # Remove rows with invalid prices (negative or zero)
+    ts_clean = ts_clean[(ts_clean['high'] > 0) & (ts_clean['low'] > 0)]
+
+    # Remove rows where high < low (data errors)
+    ts_clean = ts_clean[ts_clean['high'] >= ts_clean['low']]
+
+    # Check if we still have valid data
+    if ts_clean.empty:
+        st.error("❌ No valid chart data available after cleaning")
+        st.info("💡 The data contains too many invalid values (NaN, negative prices, etc.)")
+        return
+
+    # Use the cleaned data
+    ts = ts_clean
+
+    st.success(f"✅ Chart data cleaned: {len(ts)} valid data points")
     # Ensure timestamp column is datetime
     ts['timestamp'] = pd.to_datetime(ts['timestamp'])
 
@@ -225,10 +247,22 @@ def create_interactive_chart(ts: pd.DataFrame,
         unprofitable_periods = []
 
         for i in range(len(ts)):
-            high_price = ts['high'].iloc[i]
-            low_price = ts['low'].iloc[i]
-            ge_tax = calculate_ge_tax(high_price)
-            net_profit = high_price - low_price - ge_tax
+            try:
+                high_price = ts['high'].iloc[i]
+                low_price = ts['low'].iloc[i]
+
+                # Skip invalid data points
+                if pd.isna(high_price) or pd.isna(low_price) or high_price <= 0 or low_price <= 0:
+                    continue
+
+                ge_tax = calculate_ge_tax(high_price)
+                net_profit = high_price - low_price - ge_tax
+
+                timestamp = ts['timestamp'].iloc[i]
+
+            except (IndexError, ValueError, TypeError) as e:
+                # Skip problematic data points
+                continue
 
             timestamp = ts['timestamp'].iloc[i]
 
@@ -319,10 +353,22 @@ def create_interactive_chart(ts: pd.DataFrame,
         # Add break-even zone (yellow/orange for marginal profits)
         marginal_periods = []
         for i in range(len(ts)):
-            high_price = ts['high'].iloc[i]
-            low_price = ts['low'].iloc[i]
-            ge_tax = calculate_ge_tax(high_price)
-            net_profit = high_price - low_price - ge_tax
+            try:
+                high_price = ts['high'].iloc[i]
+                low_price = ts['low'].iloc[i]
+
+                # Skip invalid data points
+                if pd.isna(high_price) or pd.isna(low_price) or high_price <= 0 or low_price <= 0:
+                    continue
+
+                ge_tax = calculate_ge_tax(high_price)
+                net_profit = high_price - low_price - ge_tax
+
+                timestamp = ts['timestamp'].iloc[i]
+
+            except (IndexError, ValueError, TypeError) as e:
+                # Skip problematic data points
+                continue
 
             # Marginal = small profit (0-500 gp)
             if 0 < net_profit <= 500:
@@ -1272,10 +1318,22 @@ def show_fill_area_analysis(ts: pd.DataFrame, item_name: str):
     total_loss = 0
 
     for i in range(len(ts)):
-        high_price = ts['high'].iloc[i]
-        low_price = ts['low'].iloc[i]
-        ge_tax = calculate_ge_tax(high_price)
-        net_profit = high_price - low_price - ge_tax
+        try:
+            high_price = ts['high'].iloc[i]
+            low_price = ts['low'].iloc[i]
+
+            # Skip invalid data points
+            if pd.isna(high_price) or pd.isna(low_price) or high_price <= 0 or low_price <= 0:
+                continue
+
+            ge_tax = calculate_ge_tax(high_price)
+            net_profit = high_price - low_price - ge_tax
+
+            timestamp = ts['timestamp'].iloc[i]
+
+        except (IndexError, ValueError, TypeError) as e:
+            # Skip problematic data points
+            continue
 
         if net_profit > 500:
             profitable_periods += 1
