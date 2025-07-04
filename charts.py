@@ -695,6 +695,102 @@ def create_interactive_chart(ts: pd.DataFrame,
         )
     )
 
+    # Advanced Interactivity Configuration
+    fig.update_layout(
+        # Enhanced zoom and pan
+        dragmode='zoom',
+        selectdirection='diagonal',
+
+        # Crosshair cursor configuration
+        hovermode='x unified',
+        spikedistance=1000,
+        hoverdistance=100,
+
+        # Interactive features
+        showlegend=True,
+        legend_itemclick="toggleothers",
+        legend_itemdoubleclick="toggle",
+
+        # Enhanced selection tools
+        newshape=dict(
+            line_color='rgba(100, 200, 100, 0.8)',
+            line_width=2,
+            opacity=0.8
+        ),
+
+        # Modebar configuration
+        modebar=dict(
+            bgcolor='rgba(30, 30, 30, 0.8)',
+            color='rgba(255, 255, 255, 0.7)',
+            activecolor='rgba(100, 200, 100, 1)',
+            orientation='h',
+            remove=['lasso2d', 'select2d']  # Remove confusing tools
+        )
+    )
+
+    # Enhanced axis interactions
+    fig.update_xaxes(
+        showspikes=True,
+        spikecolor='rgba(100, 200, 100, 0.6)',
+        spikesnap='cursor',
+        spikemode='across',
+        spikethickness=1,
+        spikedash='solid'
+    )
+
+    fig.update_yaxes(
+        showspikes=True,
+        spikecolor='rgba(100, 200, 100, 0.6)',
+        spikesnap='cursor',
+        spikemode='across',
+        spikethickness=1,
+        spikedash='solid',
+        row=1, col=1
+    )
+
+    # Interactive Price Display JavaScript
+    interactive_js = f"""
+    <script>
+    function updatePriceDisplay(eventdata) {{
+        if (eventdata && eventdata.points && eventdata.points.length > 0) {{
+            var point = eventdata.points[0];
+            var timestamp = point.x;
+            var price = point.y;
+            var trace_name = point.data.name;
+
+            // Update display element if it exists
+            var display = document.getElementById('price-display-{item_name.replace(" ", "-")}');
+            if (display) {{
+                display.innerHTML = '<b>' + trace_name + '</b>: ' + 
+                                  price.toLocaleString() + ' gp<br>' +
+                                  '<small>' + new Date(timestamp).toLocaleString() + '</small>';
+            }}
+        }}
+    }}
+
+    // Add event listener when chart is ready
+    document.addEventListener('DOMContentLoaded', function() {{
+        var plotDiv = document.querySelector('[data-testid="stPlotlyChart"]');
+        if (plotDiv) {{
+            plotDiv.on('plotly_hover', updatePriceDisplay);
+        }}
+    }});
+    </script>
+
+    <div id="price-display-{item_name.replace(' ', '-')}" 
+         style="position: fixed; top: 100px; right: 20px; 
+                background: rgba(30, 30, 30, 0.9); 
+                color: white; padding: 10px; 
+                border-radius: 5px; border: 1px solid rgba(100, 200, 100, 0.5);
+                z-index: 1000; font-family: Consolas;
+                display: none;">
+        Hover over chart to see price details
+    </div>
+    """
+
+    # Add the interactive JavaScript to Streamlit
+    st.markdown(interactive_js, unsafe_allow_html=True)
+
     # Professional Grid and Axis Styling - GE Tracker inspired
     fig.update_xaxes(
         showgrid=True,
@@ -848,8 +944,42 @@ def create_interactive_chart(ts: pd.DataFrame,
     # Add the annotations to the layout
     fig.update_layout(annotations=annotations)
 
-    # Display the chart
-    st.plotly_chart(fig, use_container_width=True, key=f"chart_{item_name}_{current_timestep}")
+    # Display the enhanced interactive chart
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        key=f"chart_{item_name}_{current_timestep}",
+        config={
+            'displayModeBar': True,
+            'displaylogo': False,
+            'modeBarButtonsToAdd': [
+                'drawline',
+                'drawopenpath',
+                'drawclosedpath',
+                'drawcircle',
+                'drawrect',
+                'eraseshape'
+            ],
+            'modeBarButtonsToRemove': [
+                'lasso2d',
+                'select2d'
+            ],
+            'toImageButtonOptions': {
+                'format': 'png',
+                'filename': f'{item_name}_chart_{current_timestep}',
+                'height': height,
+                'width': width,
+                'scale': 2
+            },
+            'scrollZoom': True,
+            'doubleClick': 'reset+autosize',
+            'showTips': True,
+            'responsive': True
+        }
+    )
+
+    # Add chart interaction controls
+    show_chart_controls(ts, item_name, current_timestep)
 
     # Reference line information panel
     show_reference_info(ts, item_name)
@@ -1235,3 +1365,171 @@ def show_fill_area_analysis(ts: pd.DataFrame, item_name: str):
             st.warning("⚠️ **High risk item** - Consider avoiding")
         else:
             st.success("✅ **Consistent performer** - Good for regular trading")
+
+
+def show_chart_controls(ts: pd.DataFrame, item_name: str, current_timestep: str):
+    """Display interactive chart controls and analysis tools"""
+
+    st.markdown("---")
+    st.subheader("🎮 Chart Interaction Controls")
+
+    # Interactive controls in columns
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown("**📊 Chart Tools:**")
+        st.info("🖱️ **Mouse Controls:**\n"
+                "• Drag to pan\n"
+                "• Scroll to zoom\n"
+                "• Double-click to reset\n"
+                "• Hover for price details")
+
+    with col2:
+        st.markdown("**🔧 Drawing Tools:**")
+        st.info("📝 **Available Tools:**\n"
+                "• Draw trend lines\n"
+                "• Add rectangles\n"
+                "• Mark support/resistance\n"
+                "• Erase drawings")
+
+    with col3:
+        st.markdown("**📥 Export Options:**")
+
+        # Chart export button
+        if st.button("📸 Export Chart Image", use_container_width=True):
+            st.info("💡 Use the camera icon in the chart toolbar to download PNG")
+
+        # Data export
+        if st.button("📊 Export Chart Data", use_container_width=True):
+            csv_data = ts.to_csv(index=False)
+            st.download_button(
+                label="💾 Download CSV Data",
+                data=csv_data,
+                file_name=f"{item_name}_chart_data_{current_timestep}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+    with col4:
+        st.markdown("**🎯 Quick Analysis:**")
+
+        # Price analysis buttons
+        if st.button("📈 Analyze Trends", use_container_width=True):
+            show_trend_analysis(ts, item_name)
+
+        if st.button("⚡ Volatility Report", use_container_width=True):
+            show_volatility_report(ts, item_name)
+
+
+def show_trend_analysis(ts: pd.DataFrame, item_name: str):
+    """Show detailed trend analysis"""
+
+    if len(ts) < 5:
+        st.warning("Need more data points for trend analysis")
+        return
+
+    st.subheader(f"📈 Trend Analysis: {item_name}")
+
+    # Calculate various trend indicators
+    ts_copy = ts.copy()
+
+    # Moving averages
+    ts_copy['ma_5'] = ts_copy['high'].rolling(window=5).mean()
+    ts_copy['ma_10'] = ts_copy['high'].rolling(window=min(10, len(ts) // 2)).mean()
+
+    # Price momentum
+    ts_copy['price_change'] = ts_copy['high'].pct_change()
+    ts_copy['momentum'] = ts_copy['price_change'].rolling(window=3).mean()
+
+    # Support and resistance levels
+    recent_highs = ts_copy['high'].tail(20)
+    recent_lows = ts_copy['low'].tail(20)
+
+    resistance = recent_highs.quantile(0.8)
+    support = recent_lows.quantile(0.2)
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("🔺 Resistance Level", f"{resistance:,.0f} gp")
+        st.metric("🔻 Support Level", f"{support:,.0f} gp")
+
+    with col2:
+        current_momentum = ts_copy['momentum'].iloc[-1]
+        momentum_direction = "📈 Bullish" if current_momentum > 0 else "📉 Bearish"
+        st.metric("⚡ Current Momentum", momentum_direction)
+
+        # Trend strength
+        ma_diff = ts_copy['ma_5'].iloc[-1] - ts_copy['ma_10'].iloc[-1]
+        trend_strength = "Strong" if abs(ma_diff) > ts_copy['high'].iloc[-1] * 0.02 else "Weak"
+        st.metric("💪 Trend Strength", trend_strength)
+
+    with col3:
+        # Price position
+        current_price = ts_copy['high'].iloc[-1]
+        price_position = "Near Resistance" if current_price > resistance * 0.95 else \
+            "Near Support" if current_price < support * 1.05 else "Mid-Range"
+        st.metric("📍 Price Position", price_position)
+
+        # Trading recommendation
+        if current_momentum > 0 and current_price < resistance * 0.9:
+            recommendation = "🟢 Consider Buying"
+        elif current_momentum < 0 and current_price > support * 1.1:
+            recommendation = "🔴 Consider Selling"
+        else:
+            recommendation = "🟡 Hold/Wait"
+        st.metric("💡 Recommendation", recommendation)
+
+
+def show_volatility_report(ts: pd.DataFrame, item_name: str):
+    """Show detailed volatility analysis"""
+
+    st.subheader(f"⚡ Volatility Report: {item_name}")
+
+    # Calculate volatility metrics
+    price_returns = ts['high'].pct_change().dropna()
+    volatility = price_returns.std() * 100  # Convert to percentage
+
+    # Price range analysis
+    price_ranges = ((ts['high'] - ts['low']) / ts['low'] * 100).dropna()
+    avg_daily_range = price_ranges.mean()
+
+    # Volume volatility
+    volume_cv = ts['volume'].std() / ts['volume'].mean() if ts['volume'].mean() > 0 else 0
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**📊 Price Volatility:**")
+
+        if volatility < 2:
+            vol_level = "🟢 Low"
+            vol_desc = "Stable price movements"
+        elif volatility < 5:
+            vol_level = "🟡 Medium"
+            vol_desc = "Moderate price swings"
+        else:
+            vol_level = "🔴 High"
+            vol_desc = "Large price movements"
+
+        st.metric("Volatility Level", vol_level)
+        st.write(f"**Standard Deviation:** {volatility:.2f}%")
+        st.write(f"**Average Daily Range:** {avg_daily_range:.2f}%")
+        st.caption(vol_desc)
+
+    with col2:
+        st.markdown("**📈 Trading Implications:**")
+
+        if volatility < 2:
+            st.success("✅ **Good for:** Conservative trading, large positions")
+            st.info("📝 **Strategy:** Buy and hold, tight stop losses")
+        elif volatility < 5:
+            st.info("📊 **Good for:** Active trading, medium positions")
+            st.info("📝 **Strategy:** Swing trading, wider stops")
+        else:
+            st.warning("⚠️ **Good for:** Expert traders, small positions")
+            st.info("📝 **Strategy:** Day trading, very tight management")
+
+        # Risk assessment
+        risk_score = min(10, volatility * 2)
+        st.metric("🎯 Risk Score", f"{risk_score:.1f}/10")
