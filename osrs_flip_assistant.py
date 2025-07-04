@@ -255,20 +255,25 @@ def show_opportunities_page():
 
     st.sidebar.markdown("---")
 
-    # Mode selection with new High Volume mode
-    mode = st.sidebar.selectbox("Mode", ["Custom", "Low-Risk", "High-ROI", "Passive Overnight", "High Volume"])
+    # Mode selection - cleaner organization
+    st.sidebar.markdown("### 🎯 Trading Strategy")
+    mode = st.sidebar.selectbox("Select Mode", ["Custom", "Low-Risk", "High-ROI", "Passive Overnight", "High Volume"])
+
     if mode == "Low-Risk":
         m, v, u = 200, 1000, 2000
+        st.sidebar.caption("💡 Conservative trading with stable items")
     elif mode == "High-ROI":
         m, v, u = 1000, 500, 5000
+        st.sidebar.caption("💡 Higher returns with increased risk")
     elif mode == "Passive Overnight":
         m, v, u = 300, 200, 1000
+        st.sidebar.caption("💡 Set-and-forget overnight flips")
     elif mode == "High Volume":
-        # High Volume mode: focus on liquid markets with good profit
-        m, v, u = 100, 1000, 1000  # Lower barriers for high volume items
-        st.sidebar.info("🔥 High Volume Mode: Shows 250 highest traded items sorted by profit")
+        m, v, u = 100, 1000, 1000
+        st.sidebar.caption("💡 Focus on liquid, high-volume items")
     else:
         m, v, u = MIN_MARGIN, MIN_VOLUME, MIN_UTILITY
+        st.sidebar.caption("💡 Use custom filter settings below")
 
         # Filter controls - only update session state when values actually change
         new_min_margin = st.sidebar.slider("Min Net Margin", 0, 5000, m, 50)
@@ -1848,14 +1853,6 @@ def streamlit_dashboard():
     # Initialize session state
     if 'presets' not in st.session_state:
         st.session_state.presets = {}
-
-    # Add cache performance display in sidebar
-    try:
-        from cache_manager import show_cache_stats
-        show_cache_stats()
-    except Exception as e:
-        # If cache stats fail, don't break the app
-        pass
 
     if 'season_th' not in st.session_state:
         st.session_state.season_th = 0.0
