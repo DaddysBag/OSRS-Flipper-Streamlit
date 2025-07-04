@@ -523,36 +523,26 @@ def streamlit_dashboard():
         }
         
         # Display with proper numerical sorting
-        selected_rows = st.dataframe(
+        st.dataframe(
             final_display_df,
             use_container_width=True,
             key="properly_sorted_flip_table",
             height=600,
             hide_index=True,
-            column_config=column_config,
-            on_select="rerun",
-            selection_mode="single-row"
+            column_config=column_config
         )
 
-        st.write("Debug - Selected rows:", selected_rows)
-        st.write("Streamlit version:", st.__version__)
+        # Add item selector below table
+        st.subheader("📊 View Item Chart")
+        selected_item = st.selectbox(
+            "Select an item to view detailed chart:",
+            options=df['Item'].tolist(),
+            key="item_chart_selector"
+        )
 
-        if hasattr(selected_rows, 'selection'):
-            st.write("Selection exists:", selected_rows.selection)
-        else:
-            st.write("Selection not supported - need Streamlit 1.29.0+")
-
-        # Handle item selection
-        if selected_rows['selection']['rows']:
-            selected_idx = selected_rows['selection']['rows'][0]
-            selected_item = final_display_df.iloc[selected_idx]['Item']
-
-            st.session_state['selected_item'] = selected_item
-            st.session_state['show_item_detail'] = True
-
-            st.success(f"📊 Selected: {selected_item}")
-
+        if selected_item:
             if st.button(f"🔍 View {selected_item} Chart", type="primary"):
+                st.session_state['selected_item'] = selected_item
                 st.session_state['show_chart_page'] = True
                 st.rerun()
         
