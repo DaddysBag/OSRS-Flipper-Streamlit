@@ -1563,10 +1563,137 @@ def show_chart_analysis(ts, item_name, time_period):
             recommendation = "🔴 High Risk"
         st.info(f"**Recommendation:** {recommendation}")
 
+
+def inject_custom_css():
+    """Inject custom CSS for OSRS-themed dark UI"""
+    st.markdown("""
+    <style>
+        /* Import Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        /* Root Variables */
+        :root {
+            --primary-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #4CAF50;
+            --text-primary: #e0e0e0;
+            --text-secondary: #bbb;
+            --osrs-gold: #ffd700;
+        }
+
+        /* Global Overrides */
+        .stApp {
+            background: var(--primary-bg) !important;
+            font-family: 'Inter', 'Segoe UI', sans-serif !important;
+        }
+
+        /* Hide Streamlit branding */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+
+        /* Main content styling */
+        .main .block-container {
+            padding-top: 2rem !important;
+            padding-bottom: 2rem !important;
+            max-width: 1400px !important;
+        }
+
+        /* Headers */
+        h1, h2, h3 {
+            color: var(--osrs-gold) !important;
+            font-weight: 600 !important;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        h1 {
+            font-size: 2.5rem !important;
+            margin-bottom: 1rem !important;
+        }
+
+        /* Card-like containers */
+        .stContainer > div {
+            background: var(--card-bg) !important;
+            backdrop-filter: blur(10px) !important;
+            border: 1px solid var(--card-border) !important;
+            border-radius: 15px !important;
+            padding: 20px !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        /* Sidebar styling */
+        .css-1d391kg {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-right: 1px solid var(--card-border) !important;
+        }
+
+        /* Text color overrides */
+        .stMarkdown, .stText, p, span, div {
+            color: var(--text-primary) !important;
+        }
+
+        /* Metric styling */
+        [data-testid="metric-container"] {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--card-border) !important;
+            border-radius: 10px !important;
+            padding: 15px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        [data-testid="metric-container"]:hover {
+            transform: translateY(-2px) !important;
+            border-color: var(--accent-color) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        /* Button styling */
+        .stButton > button {
+            background: linear-gradient(135deg, var(--accent-color), #45a049) !important;
+            border: none !important;
+            border-radius: 8px !important;
+            color: white !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2) !important;
+        }
+
+        .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3) !important;
+        }
+
+        /* Input styling */
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stSlider > div > div > div > div {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid var(--card-border) !important;
+            border-radius: 8px !important;
+            color: var(--text-primary) !important;
+        }
+
+        .stTextInput > div > div > input:focus,
+        .stSelectbox > div > div > select:focus {
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
+        }
+
+    </style>
+    """, unsafe_allow_html=True)
+
 # Streamlit UI
 def streamlit_dashboard():
+    st.set_page_config(
+        page_title="💸 OSRS GE Flipping Assistant",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        page_icon="💰"
+    )
 
-    st.set_page_config(page_title="OSRS Flip Assistant", layout="wide")
+    # Inject our custom CSS
+    inject_custom_css()
 
     # Initialize session state
     if 'presets' not in st.session_state:
