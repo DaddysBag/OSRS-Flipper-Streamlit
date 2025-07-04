@@ -38,6 +38,23 @@ from analytics import (
     calculate_capital_at_risk
 )
 
+from charts import (
+    create_enhanced_chart,
+    create_interactive_chart
+)
+
+from filters import (
+    filter_items,
+    backtest_filters,
+    compute_price_correlations
+)
+
+from alerts import (
+    send_discord_alert,
+    get_alert_history,
+    clear_alert_history
+)
+
 # Load secrets from .streamlit/secrets.toml
 discord_webhook_url = st.secrets["discord"]["webhook_url"]
 
@@ -67,288 +84,10 @@ SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/au
 
 # Globals
 show_all = False
-LAST_ALERTS = {}  # track last alert times per item
-
-# Add these functions after your existing helper functions (around line 200)
 
 # Global cache for performance
 MANIPULATION_CACHE = {}
 VOLATILITY_CACHE = {}
-
-# FIXED: Main filter with momentum, category, seasonality
-def filter_items(price_data_result, hourly_data, id2name, show_all=False, mode="Custom"):
-    """Filter and analyze items with enhanced debugging - FIXED VERSION"""
-    
-    # Handle new data structure with timestamp
-    if isinstance(price_data_result, dict) and 'data' in price_data_result:
-        price_data = price_data_result['data']
-        data_timestamp = price_data_result.get('timestamp', datetime.datetime.now(datetime.timezone.utc).timestamp())
-    else:
-        price_data = price_data_result
-        data_timestamp = datetime.datetime.now(datetime.timezone.utc).timestamp()
-    
-    print(f"🔄 Filtering items. Price data: {len(price_data)}, Hourly data: {len(hourly_data)}, Mappings: {len(id2name)}")
-    
-    if not price_data:
-        print("❌ No price data available")
-        return pd.DataFrame()
-    
-    if not id2name:
-        print("❌ No item mappings available")
-        return pd.DataFrame()
-    
-    limits = get_buy_limits()
-    recs = []
-    processed = 0
-    valid_items = 0
-    total_items = len(price_data)
-    
-    # Use timezone-aware UTC hour
-    current_hour = datetime.datetime.now(datetime.timezone.utc).hour
-    current_time = datetime.datetime.now(datetime.timezone.utc).timestamp()
-    
-    # FIXED: Convert items() to list to avoid iteration issues
-    price_items = list(price_data.items())
-    
-    for iid, stats in price_items:
-        processed += 1
-        
-        # Progress logging every 1000 items
-        if processed % 1000 == 0:
-            print(f"Processed {processed}/{total_items} items...")
-        
-        try:
-            name = id2name.get(iid, f"Unknown_{iid}")
-            
-            # Skip excluded items
-            if any(exc.lower() in name.lower() for exc in EXCLUDED_ITEMS):
-                continue
-                
-            # Get basic price data
-            hi = stats.get('high')
-            lo = stats.get('low')
-            
-            if not hi or not lo or hi <= lo:
-                continue
-                
-            valid_items += 1
-            
-            # Get hourly data
-            hourly = hourly_data.get(iid, {})
-            vol1h = hourly.get('lowPriceVolume', 0) + hourly.get('highPriceVolume', 0)
-            avg_lo = hourly.get('avgLowPrice')
-            
-            # Calculate metrics
-            tax = calculate_ge_tax(hi)
-            net = hi - lo - tax
-            
-            # Avoid division by zero
-            if vol1h == 0:
-                util = 0
-            else:
-                util = round((net * vol1h) / (abs(hi - (avg_lo if avg_lo else 0)) + 1), 2)
-            
-            # momentum - handle division by zero
-            if avg_lo and avg_lo > 0:
-                momentum = round((lo - avg_lo) / avg_lo * 100, 2)
-            else:
-                momentum = 0
-            
-            # seasonality: avg volume for this hour over past 7d
-            # Note: This is expensive, so we'll skip it for now to avoid hanging
-            season_ratio = 1.0  # Default value
-            
-            cat = categorize_item(name)
-            gl = limits.get(name, 1000)  # Default to 1000 if not found
-            roi = round(net / lo * 100, 2) if lo else 0
-            
-            # ENHANCED ANALYTICS - Add these lines after roi calculation
-            # 1. Manipulation Detection
-            manipulation = detect_manipulation(iid, hi, hourly)
-            
-            # 2. Volatility Scoring
-            volatility = calculate_volatility_score(iid, hi, hourly)
-            
-            # 3. Capital at Risk Analysis
-            capital_risk = calculate_capital_at_risk(lo, vol1h, gl, volatility['score'])
-            
-            # 4. Risk-Adjusted Utility Score
-            risk_factor = 1 + (volatility['score'] / 10) + (manipulation['score'] / 20)
-            risk_adjusted_util = util / risk_factor if risk_factor > 0 else 0
-            
-            # 5. Profit Persistence Score (simplified)
-            persistence_score = 10 - manipulation['score'] - (volatility['score'] / 2)
-            persistence_score = max(0, min(10, persistence_score))
-            
-            # 6. Liquidity Score
-            liquidity_score = min(10, vol1h / 100) if vol1h > 0 else 0
-            
-            # Calculate actual data age in seconds
-            item_timestamp = stats.get('highTime', data_timestamp)
-            data_age_seconds = current_time - item_timestamp
-            data_age_minutes = round(data_age_seconds / 60, 1)
-            
-            # Get individual timestamps for high and low prices
-            high_time = stats.get('highTime', data_timestamp)
-            low_time = stats.get('lowTime', data_timestamp)
-            high_age_minutes = round((current_time - high_time) / 60, 1)
-            low_age_minutes = round((current_time - low_time) / 60, 1)
-            
-            recs.append({
-                'Item': name,
-                'Buy Price': lo,
-                'Sell Price': hi,
-                'Net Margin': net,
-                'ROI (%)': roi,
-                '1h Volume': vol1h,
-                'Momentum (%)': momentum,
-                'Season Ratio': season_ratio,
-                'Utility': util,
-                'Category': cat,
-                'Item ID': iid,
-                'Data Age (min)': data_age_minutes,
-                'High Age (min)': high_age_minutes,
-                'Low Age (min)': low_age_minutes,
-                
-                'Manipulation Score': manipulation['score'],
-                'Manipulation Risk': manipulation['risk_level'],
-                'Volatility Score': volatility['score'],
-                'Volatility Level': volatility['level'],
-                'Risk Adjusted Utility': risk_adjusted_util,
-                'Profit Persistence': persistence_score,
-                'Liquidity Score': liquidity_score,
-                'Capital Required': capital_risk['capital_required'],
-                'Potential Loss': capital_risk['potential_loss'],
-                'Risk Ratio': capital_risk['risk_ratio']
-            })
-            
-        except Exception as e:
-            print(f"❌ Error processing item {iid}: {e}")
-            continue
-    
-    print(f"✅ Processed {processed} items, found {valid_items} valid items, created {len(recs)} recommendations")
-    
-    if not recs:
-        print("❌ No recommendations generated")
-        return pd.DataFrame()
-    
-    df = pd.DataFrame(recs)
-    
-    # High Volume mode special handling
-    if mode == "High Volume":
-        print("🔥 High Volume Mode: Showing 250 highest traded items")
-        # Sort by volume first, then by profit
-        df = df.sort_values(['1h Volume', 'Net Margin'], ascending=[False, False])
-        return df.head(250)  # Return top 250 by volume
-    
-    # If "Show All" is enabled, bypass core filtering
-    if show_all:
-        print("📋 Showing all items (no filtering)")
-        return df.sort_values('Utility', ascending=False)
-
-    # Apply core filters with enhanced criteria
-    season_th = st.session_state.get('season_th', 0) if 'st' in globals() else 0
-    manipulation_th = st.session_state.get('manipulation_th', 7) if 'st' in globals() else 7
-    volatility_th = st.session_state.get('volatility_th', 8) if 'st' in globals() else 8
-
-    before_filter = len(df)
-
-    # Enhanced filtering with risk considerations
-    df = df[
-        (df['Net Margin'] >= MIN_MARGIN) &
-        (df['1h Volume'] >= MIN_VOLUME) &
-        (df['Utility'] >= MIN_UTILITY) &
-        (df['Season Ratio'] >= season_th) &
-        (df['Manipulation Score'] <= manipulation_th) &
-        (df['Volatility Score'] <= volatility_th)
-    ]
-
-    after_filter = len(df)
-    print(f"🔍 Enhanced filters applied: {before_filter} -> {after_filter} items")
-    print(f"   Max Manipulation: {manipulation_th}, Max Volatility: {volatility_th}")
-
-    # Sort by Risk Adjusted Utility instead of regular Utility
-    return df.sort_values('Risk Adjusted Utility', ascending=False)
-
-# Alerts with rate-limit (3 minutes minimum between alerts)
-def send_discord_alert(item, buy, sell, margin):
-    # Use timezone-aware UTC
-    now = datetime.datetime.now(datetime.timezone.utc)
-    last = LAST_ALERTS.get(item)
-    
-    # 3 minute cooldown (180 seconds)
-    cooldown_seconds = 180
-    if last and (now - last).total_seconds() < cooldown_seconds:
-        remaining_time = cooldown_seconds - (now - last).total_seconds()
-        print(f"⏳ Discord alert for {item} on cooldown for {remaining_time:.0f} more seconds")
-        return False
-    
-    LAST_ALERTS[item] = now
-    
-    try:
-        payload = f"🚨 **OSRS Flip Alert** 🚨\n**{item}**\n💰 Buy: {buy:,} gp\n💸 Sell: {sell:,} gp\n📈 Net Margin: {margin:,} gp\n⏰ {now.strftime('%H:%M UTC')}"
-        response = requests.post(
-            discord_webhook_url,
-            json={"content": payload},
-            headers={"Content-Type": "application/json"},
-            timeout=5
-        )
-        
-        if response.status_code == 200:
-            print(f"✅ Discord alert sent for {item}")
-            return True
-        else:
-            print(f"❌ Discord alert failed with status {response.status_code}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Discord alert failed: {e}")
-        return False
-
-# Backtest filters
-def backtest_filters(id2name, days=1):
-    sigs = []
-    for iid, name in list(id2name.items())[:10]:  # Limit for testing
-        ts = get_timeseries(iid, days)
-        if ts is None or ts.empty:
-            continue
-        try:
-            hr = ts.set_index('timestamp').resample('1H').agg({
-                'low': 'min', 'high': 'max', 'volume': 'sum'
-            }).dropna()
-            for t, row in hr.iterrows():
-                hi, lo, vol = row['high'], row['low'], row['volume']
-                if hi <= lo:
-                    continue
-                net = (hi - lo) - calculate_ge_tax(hi)
-                util = round((net * vol) / (abs(hi - lo) + 1), 2)
-                if net >= MIN_MARGIN and vol >= MIN_VOLUME and util >= MIN_UTILITY:
-                    sigs.append({
-                        'timestamp': t,
-                        'Item': name,
-                        'Net Margin': net,
-                        'Volume': vol,
-                        'Utility': util
-                    })
-        except Exception as e:
-            print(f"Error in backtest for {name}: {e}")
-            continue
-    return pd.DataFrame(sigs)
-
-# Correlations
-def compute_price_correlations(name2id, top_n=10, days=1):
-    dfs = {}
-    for name, iid in list(name2id.items())[:top_n]:
-        ts = get_timeseries(iid, days)
-        if ts is None or ts.empty:
-            continue
-        dfs[name] = ts.set_index('timestamp')['avg_price']
-    if not dfs:
-        return pd.DataFrame()
-    try:
-        return pd.concat(dfs, axis=1).dropna().corr()
-    except:
-        return pd.DataFrame()
 
 # Google Sheets
 def export_to_sheets(df):
@@ -463,149 +202,6 @@ def run_flip_scanner(mode="Custom"):
             st.error(error_msg)
         return pd.DataFrame(), {}
 
-def create_enhanced_chart(ts, item_name, chart_type, height, width,
-                          color_high, color_low, color_volume,
-                          line_width, show_grid, show_volume, volume_opacity):
-    # 1) Dark theme
-    plt.style.use('dark_background')
-    fig, axes = (plt.subplots(2, 1, figsize=(width/100, height/100),
-                               gridspec_kw={'height_ratios': [3,1]}, sharex=True)
-                 if show_volume else
-                 (plt.subplots(figsize=(width/100, height/100))))
-    if show_volume:
-        ax1, ax2 = axes
-        ax2.set_facecolor('#2b2b2b')
-    else:
-        ax1 = axes
-    fig.patch.set_facecolor('#1f1f1f')
-    ax1.set_facecolor('#2b2b2b')
-
-    # 2) Price lines with markers
-    ax1.plot(ts['timestamp'], ts['high'], marker='o', markersize=4,
-             label='Sell', color=color_high, linewidth=line_width)
-    ax1.plot(ts['timestamp'], ts['low'],  marker='o', markersize=4,
-             label='Buy',  color=color_low,  linewidth=line_width)
-
-    # 3) Rolling-average trend
-    ts['mid'] = (ts['high'] + ts['low'])/2
-    trend = ts['mid'].rolling(window=10, min_periods=1).mean()
-    ax1.plot(ts['timestamp'], trend, linestyle='--', linewidth=1,
-             color='#bdc3c7', alpha=0.7, label='Trend')
-
-    # 4) Volume bars
-    if show_volume:
-        ax2.bar(
-            ts['timestamp'],
-            ts['volume'],
-            alpha=volume_opacity,
-            color=color_volume,
-            width=0.02,
-            label='Volume'
-        )
-
-    # 5) Styling
-    for ax in (ax1, ax2) if show_volume else (ax1,):
-        if show_grid:
-            ax.grid(True, linestyle='--', alpha=0.3)
-        ax.tick_params(colors='white')
-        for spine in ax.spines.values():
-            spine.set_color('#444')
-
-    ax1.set_ylabel('Price (gp)', color='white', fontsize=12)
-    if show_volume:
-        ax2.set_ylabel('Volume', color='white', fontsize=10)
-        ax2.set_xlabel('Time', color='white')
-    else:
-        ax1.set_xlabel('Time', color='white')
-
-    ax1.legend(loc='upper left', frameon=False)
-    if show_volume:
-        ax2.legend(loc='upper right', frameon=False)
-
-    # 6) Date formatting
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-    fig.autofmt_xdate()
-
-    # 7) Title & layout
-    ax1.set_title(f'{item_name}', color='white', pad=12)
-    plt.tight_layout()
-    st.pyplot(fig)
-    plt.close()
-
-def create_interactive_chart(ts: pd.DataFrame,
-                             item_name: str,
-                             width: int = 800,
-                             height: int = 500):
-    ts['timestamp'] = pd.to_datetime(ts['timestamp'])
-
-    fig = make_subplots(
-        rows=2, cols=1,
-        shared_xaxes=True,
-        row_heights=[0.7, 0.3],
-        vertical_spacing=0.02
-    )
-
-    # top: price
-    fig.add_trace(
-        go.Scatter(
-            x=ts['timestamp'], y=ts['high'],
-            mode='lines+markers',
-            name='Sell Price',
-            marker=dict(size=4),
-            line=dict(width=2),
-            hovertemplate='Sell: %{y} gp<br>%{x|%b %d %H:%M}<extra></extra>'
-        ), row=1, col=1
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=ts['timestamp'], y=ts['low'],
-            mode='lines+markers',
-            name='Buy Price',
-            marker=dict(size=4),
-            line=dict(width=2),
-            hovertemplate='Buy: %{y} gp<br>%{x|%b %d %H:%M}<extra></extra>'
-        ), row=1, col=1
-    )
-    # optional trend line
-    ts['mid'] = (ts['high'] + ts['low']) / 2
-    rolling = ts['mid'].rolling(window=10, min_periods=1).mean()
-    fig.add_trace(
-        go.Scatter(
-            x=ts['timestamp'], y=rolling,
-            mode='lines',
-            name='Trend',
-            line=dict(dash='dash', width=1, color='#999'),
-            hoverinfo='skip'
-        ), row=1, col=1
-    )
-
-    # bottom: volume
-    fig.add_trace(
-        go.Bar(
-            x=ts['timestamp'], y=ts['volume'],
-            name='Volume',
-            marker=dict(opacity=0.6),
-            hovertemplate='Vol: %{y}<br>%{x|%b %d %H:%M}<extra></extra>'
-        ), row=2, col=1
-    )
-
-    # dark styling
-    fig.update_layout(
-        template='plotly_dark',
-        title=dict(text=item_name, x=0.5, font_size=16),
-        height=height, width=width,
-        hovermode='x unified',
-        margin=dict(t=50, b=40, l=40, r=40),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
-    )
-    fig.update_xaxes(showgrid=True, gridcolor='#444', tickfont=dict(color='white'))
-    fig.update_yaxes(title_text='Price (gp)', row=1, col=1,
-                     showgrid=True, gridcolor='#444', tickfont=dict(color='white'))
-    fig.update_yaxes(title_text='Volume', row=2, col=1,
-                     showgrid=False, tickfont=dict(color='white'))
-
-    st.plotly_chart(fig, use_container_width=True)
-
 # Streamlit UI
 def streamlit_dashboard():
     global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
@@ -621,6 +217,10 @@ def streamlit_dashboard():
         st.session_state.manipulation_th = 7
     if 'volatility_th' not in st.session_state:
         st.session_state.volatility_th = 8
+
+    st.session_state['min_margin'] = MIN_MARGIN
+    st.session_state['min_volume'] = MIN_VOLUME
+    st.session_state['min_utility'] = MIN_UTILITY
     
     st.title("💸 OSRS GE Flipping Assistant")
     
@@ -690,8 +290,14 @@ def streamlit_dashboard():
     
     # Filter controls
     MIN_MARGIN = st.sidebar.slider("Min Net Margin", 0, 5000, m, 50)
+    st.session_state['min_margin'] = MIN_MARGIN
+
     MIN_VOLUME = st.sidebar.slider("Min Volume/hr", 0, 20000, v, 100)
+    st.session_state['min_volume'] = MIN_VOLUME
+
     MIN_UTILITY = st.sidebar.slider("Min Utility", 0, 50000, u, 500)
+    st.session_state['min_utility'] = MIN_UTILITY
+
     st.session_state['season_th'] = st.sidebar.slider("Min Season Ratio", 0.0, 5.0, st.session_state.get('season_th', 0.0), 0.1)
     
     st.sidebar.subheader("🔬 Advanced Risk Filters")
@@ -1446,7 +1052,7 @@ def streamlit_dashboard():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.info(f"**Active Alerts:** {len(LAST_ALERTS)}")
+            st.info(f"**Active Alerts:** {len(get_alert_history())}")
         
         with col2:
             st.info(f"**Cooldown:** 3 minutes")
@@ -1457,7 +1063,7 @@ def streamlit_dashboard():
         
         with col4:
             if st.button("🔄 Clear Alert History"):
-                LAST_ALERTS.clear()
+                clear_alert_history()
                 st.success("Alert history cleared!")
         
         # Alert conditions explanation
@@ -1477,12 +1083,12 @@ def streamlit_dashboard():
             """)
         
         # Show recent alerts with more details
-        if LAST_ALERTS:
+        if get_alert_history():
             with st.expander("📋 Recent Alert History"):
                 alert_data = []
                 now = datetime.datetime.now(datetime.timezone.utc)
                 
-                for item, last_time in LAST_ALERTS.items():
+                for item, last_time in get_alert_history().items():
                     time_since = (now - last_time).total_seconds()
                     if time_since >= 180:
                         status = "✅ Ready"
