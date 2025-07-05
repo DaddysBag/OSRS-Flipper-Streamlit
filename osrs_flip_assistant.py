@@ -59,6 +59,8 @@ from src.styles.main_styles import inject_main_styles, inject_interactive_javasc
 
 from src.components.header import create_enhanced_header, create_navigation, create_page_title, create_performance_badge
 
+from src.components.sidebar import create_complete_sidebar
+
 # Load secrets from .streamlit/secrets.toml
 discord_webhook_url = st.secrets["discord"]["webhook_url"]
 
@@ -210,6 +212,11 @@ def run_flip_scanner(mode="Custom"):
 def show_opportunities_page():
     global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
 
+    # Initialize default values
+    MIN_MARGIN = st.session_state.get('min_margin', 500)
+    MIN_VOLUME = st.session_state.get('min_volume', 500)
+    MIN_UTILITY = st.session_state.get('min_utility', 10000)
+
     # Debug Info
     with st.expander("🔧 Debug Information"):
         st.write("**Current Configuration:**")
@@ -245,194 +252,12 @@ def show_opportunities_page():
             else:
                 st.info("ge_limits.json already exists")
 
-        # Enhanced Sidebar with Better Organization
-        st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
-        st.sidebar.markdown("### 🎯 Trading Strategy")
+            # Create sidebar with all filters and controls
+            mode, MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all = create_complete_sidebar()
 
-        # Strategy mode selection with descriptions
-        mode_descriptions = {
-            "Custom": "💡 Use custom filter settings below",
-            "Low-Risk": "💡 Conservative trading with stable items",
-            "High-ROI": "💡 Higher returns with increased risk",
-            "Passive Overnight": "💡 Set-and-forget overnight flips",
-            "High Volume": "💡 Focus on liquid, high-volume items"
-        }
-
-        mode = st.sidebar.selectbox(
-            "Select Trading Mode",
-            ["Custom", "Low-Risk", "High-ROI", "Passive Overnight", "High Volume"],
-            help="Choose your trading strategy"
-        )
-
-        # Show mode description
-        st.sidebar.caption(mode_descriptions[mode])
-
-        # Apply mode-specific values
-        if mode == "Low-Risk":
-            m, v, u = 200, 1000, 2000
-        elif mode == "High-ROI":
-            m, v, u = 1000, 500, 5000
-        elif mode == "Passive Overnight":
-            m, v, u = 300, 200, 1000
-        elif mode == "High Volume":
-            m, v, u = 100, 1000, 1000
-        else:
-            m, v, u = MIN_MARGIN, MIN_VOLUME, MIN_UTILITY
-
-        st.sidebar.markdown('</div>', unsafe_allow_html=True)
-
-        # Custom Filters Section (only show if Custom mode)
-        if mode == "Custom":
-            st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
-            st.sidebar.markdown("### 💰 Profit Filters")
-
-            # Filter controls with better formatting
-            new_min_margin = st.sidebar.slider(
-                "Min Net Margin (gp)",
-                0, 5000,
-                st.session_state.get('min_margin', m),
-                50,
-                help="Minimum profit after GE tax"
-            )
-            if new_min_margin != st.session_state.get('min_margin', m):
-                st.session_state['min_margin'] = new_min_margin
-            MIN_MARGIN = st.session_state.get('min_margin', m)
-
-            new_min_volume = st.sidebar.slider(
-                "Min Volume/hr",
-                0, 20000,
-                st.session_state.get('min_volume', v),
-                100,
-                help="Minimum hourly trading volume"
-            )
-            if new_min_volume != st.session_state.get('min_volume', v):
-                st.session_state['min_volume'] = new_min_volume
-            MIN_VOLUME = st.session_state.get('min_volume', v)
-
-            new_min_utility = st.sidebar.slider(
-                "Min Utility Score",
-                0, 50000,
-                st.session_state.get('min_utility', u),
-                500,
-                help="Minimum utility score (profit × volume)"
-            )
-            if new_min_utility != st.session_state.get('min_utility', u):
-                st.session_state['min_utility'] = new_min_utility
-            MIN_UTILITY = st.session_state.get('min_utility', u)
-
-            new_season_th = st.sidebar.slider(
-                "Min Season Ratio",
-                0.0, 5.0,
-                st.session_state.get('season_th', 0.0),
-                0.1,
-                help="Seasonal price adjustment factor"
-            )
-            if new_season_th != st.session_state.get('season_th', 0.0):
-                st.session_state['season_th'] = new_season_th
-
-            st.sidebar.markdown('</div>', unsafe_allow_html=True)
-
-            # Risk Management Section
-            st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
-            st.sidebar.markdown("### 🔬 Risk Management")
-
-            new_manipulation_th = st.sidebar.slider(
-                "Max Manipulation Score",
-                0, 10,
-                st.session_state.get('manipulation_th', 7),
-                1,
-                help="Lower = stricter filtering of potentially manipulated items"
-            )
-            if new_manipulation_th != st.session_state.get('manipulation_th', 7):
-                st.session_state['manipulation_th'] = new_manipulation_th
-
-            new_volatility_th = st.sidebar.slider(
-                "Max Volatility Score",
-                0, 10,
-                st.session_state.get('volatility_th', 8),
-                1,
-                help="Lower = stricter filtering of volatile items"
-            )
-            if new_volatility_th != st.session_state.get('volatility_th', 8):
-                st.session_state['volatility_th'] = new_volatility_th
-
-            st.sidebar.markdown('</div>', unsafe_allow_html=True)
-
-        # Preset Management Section
-        st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
-        st.sidebar.markdown("### 📋 Preset Management")
-
-        # Preset load/save with better UI
-        preset_options = [''] + list(st.session_state.presets.keys())
-        ps = st.sidebar.selectbox(
-            "Load Saved Preset",
-            preset_options,
-            help="Load previously saved filter configurations"
-        )
-
-        if ps:
-            m, v, u, season = st.session_state.presets[ps]
-            MIN_MARGIN, MIN_VOLUME, MIN_UTILITY = m, v, u
-            st.session_state['season_th'] = season
-            st.sidebar.success(f"✅ Loaded preset: {ps}")
-
-        # Save new preset
-        col1, col2 = st.sidebar.columns([2, 1])
-        with col1:
-            name_in = st.text_input("Preset Name", placeholder="Enter name...", label_visibility="collapsed")
-        with col2:
-            if st.button("💾 Save", help="Save current settings as preset") and name_in:
-                st.session_state.presets[name_in] = (MIN_MARGIN, MIN_VOLUME, MIN_UTILITY,
-                                                     st.session_state.get('season_th', 0))
-                st.sidebar.success(f"💾 Saved: {name_in}")
-
-        st.sidebar.markdown('</div>', unsafe_allow_html=True)
-
-        # Display Options Section
-        st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
-        st.sidebar.markdown("### ⚙️ Display Options")
-
-        show_all = st.sidebar.checkbox(
-            "Show All Items",
-            value=False,
-            help="Display all items regardless of filters"
-        )
-
-        # Mobile view toggle
-        mobile_view = st.sidebar.checkbox(
-            "📱 Mobile-Friendly View",
-            value=False,
-            help="Simplified layout optimized for mobile devices"
-        )
-        if mobile_view != st.session_state.get('mobile_view', False):
-            st.session_state['mobile_view'] = mobile_view
-
-        # Auto-refresh toggle
-        auto_refresh = st.sidebar.checkbox(
-            "Auto-refresh (30s)",
-            help="Automatically refresh data every 30 seconds"
-        )
-
-        if auto_refresh:
-            st.sidebar.caption("⏰ Auto-refreshing every 30 seconds...")
-            import time
-            time.sleep(30)
-            st.rerun()
-
-        # Keyboard shortcuts info - ADD THIS NEW SECTION HERE
-        with st.sidebar.expander("⌨️ Keyboard Shortcuts"):
-            st.markdown("""
-            **Available Shortcuts:**
-            - `Ctrl + R` - Refresh data
-            - `Ctrl + /` - Focus search
-            - `Escape` - Clear current selection
-
-            **Mobile Gestures:**
-            - Swipe left/right on table rows
-            - Pull down to refresh (experimental)
-            """)
-
-        st.sidebar.markdown('</div>', unsafe_allow_html=True)  # This closing tag stays at the end
+            st.session_state['min_margin'] = MIN_MARGIN
+            st.session_state['min_volume'] = MIN_VOLUME
+            st.session_state['min_utility'] = MIN_UTILITY
 
     # Main scan button
     if st.button("🔄 Refresh Data", type="primary"):
@@ -2330,10 +2155,6 @@ def streamlit_dashboard():
             });
         </script>
         """, unsafe_allow_html=True)
-
-    # Initialize session state
-    if 'presets' not in st.session_state:
-        st.session_state.presets = {}
 
     if 'season_th' not in st.session_state:
         st.session_state.season_th = 0.0
