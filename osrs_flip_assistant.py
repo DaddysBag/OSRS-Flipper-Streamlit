@@ -55,8 +55,9 @@ from alerts import (
     clear_alert_history
 )
 
-# Add this new import
 from src.styles.main_styles import inject_main_styles, inject_interactive_javascript
+
+from src.components.header import create_enhanced_header, create_navigation, create_page_title, create_performance_badge
 
 # Load secrets from .streamlit/secrets.toml
 discord_webhook_url = st.secrets["discord"]["webhook_url"]
@@ -1758,53 +1759,6 @@ def inject_custom_css():
     inject_main_styles()
     inject_interactive_javascript()
 
-def create_enhanced_header():
-    """Create the enhanced header with status indicators"""
-
-    # Get cache stats for status bar
-    from cache_manager import cache_manager
-    cache_stats = cache_manager.get_stats()
-
-    # Calculate time since last update
-    current_time = datetime.datetime.now()
-    if 'last_update_time' not in st.session_state:
-        st.session_state.last_update_time = current_time
-
-    time_diff = current_time - st.session_state.last_update_time
-    minutes_ago = int(time_diff.total_seconds() / 60)
-
-    # Main header
-    st.markdown("""
-    <h1 style="color: #ffd700; font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">
-    💸 OSRS GE Flipping Assistant
-    </h1>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <p style="color: #bbb; font-size: 1.1rem; margin-bottom: 20px;">
-    Real-time Grand Exchange opportunity scanner with advanced analytics
-    </p>
-    """, unsafe_allow_html=True)
-
-    # Status indicators using columns
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.success("✅ API Connected")
-
-    with col2:
-        st.info(f"📊 Cache Hit Rate: {cache_stats['hit_rate']:.1f}%")
-
-    with col3:
-        st.info(f"⏰ Last Update: {minutes_ago} min ago")
-
-    with col4:
-        alert_status = "🔔 Active" if not st.session_state.get('show_all_table', False) else "🚫 Disabled"
-        if "Active" in alert_status:
-            st.success(alert_status)
-        else:
-            st.warning(alert_status)
-
 def create_table_header(total_items, avg_margin, avg_risk_util):
     """Create enhanced table header with summary info"""
 
@@ -2396,56 +2350,19 @@ def streamlit_dashboard():
     st.session_state['min_volume'] = MIN_VOLUME
     st.session_state['min_utility'] = MIN_UTILITY
 
-    # Enhanced multi-page navigation with breadcrumbs
-    pages = {
-        "🔍 Opportunities": "opportunities",
-        "📊 Item Charts": "charts"
-    }
-
-    if 'page' not in st.session_state:
-        st.session_state.page = 'opportunities'
-
-    # Breadcrumb navigation
-    col1, col2, col3 = st.columns([2, 1, 1])
-
-    with col1:
-        # Show current location
-        if st.session_state.page == 'opportunities':
-            st.markdown("📍 **Home** > Opportunities")
-        elif st.session_state.page == 'charts':
-            selected_item = st.session_state.get('selected_item', 'Unknown Item')
-            st.markdown(f"📍 **Home** > [Opportunities](?) > Charts > {selected_item}")
-
-    with col2:
-        # Page selector (but less prominent)
-        selected_page = st.selectbox("Go to:", list(pages.keys()),
-                                     index=list(pages.values()).index(st.session_state.page),
-                                     key="main_nav")
-        if pages[selected_page] != st.session_state.page:
-            st.session_state.page = pages[selected_page]
-            st.rerun()
-
-    with col3:
-        # Quick actions
-        if st.session_state.page == 'charts':
-            if st.button("⬅️ Back to Opportunities", type="secondary"):
-                st.session_state.page = 'opportunities'
-                st.rerun()
+    # Navigation
+    create_navigation()
 
     # Page content with dynamic titles
     if st.session_state.page == 'opportunities':
         create_enhanced_header()
+        create_performance_badge()
         show_opportunities_page()
     elif st.session_state.page == 'charts':
         selected_item = st.session_state.get('selected_item', 'No Item Selected')
-        # Use enhanced header for charts page too
         create_enhanced_header()
-        if selected_item:
-            st.markdown(f"""
-            <h2 style="color: #4CAF50; margin-top: 20px; font-weight: 600;">
-            📊 {selected_item} - Price Chart Analysis
-            </h2>
-            """, unsafe_allow_html=True)
+        create_performance_badge()
+        create_page_title('charts', selected_item)
         show_charts_page()
 
 if __name__ == '__main__':
