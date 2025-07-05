@@ -259,6 +259,10 @@ def show_opportunities_page():
             st.session_state['min_volume'] = MIN_VOLUME
             st.session_state['min_utility'] = MIN_UTILITY
 
+            # Initialize df to avoid UnboundLocalError
+            df = pd.DataFrame()
+            name2id = {}
+
     # Main scan button
     if st.button("🔄 Refresh Data", type="primary"):
         # Enhanced loading with progress tracking
@@ -377,6 +381,11 @@ def show_opportunities_page():
 
     # Get price data for trend viewer
     price_data = st.session_state.get('price_data', {})
+
+    # Ensure df exists (fallback)
+    if 'df' not in locals():
+        df = pd.DataFrame()
+        name2id = {}
 
     # Display results with color coding
     if not df.empty:
