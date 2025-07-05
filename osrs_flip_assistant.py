@@ -560,36 +560,10 @@ def show_opportunities_page():
             # Add advanced features
             st.markdown("---")
 
-            # Advanced search and filtering
-            search_term, category_filter, sort_option = create_advanced_search()
-
-            # Apply advanced filters
-            filtered_df = df.copy()
-
-            if search_term:
-                filtered_df = filtered_df[filtered_df['Item'].str.contains(search_term, case=False, na=False)]
-
-            if category_filter != "All Categories":
-                filtered_df = filtered_df[filtered_df['Category'] == category_filter]
-
-            # Apply sorting
-            if sort_option == "Profit Margin":
-                filtered_df = filtered_df.sort_values('Net Margin', ascending=False)
-            elif sort_option == "ROI %":
-                filtered_df = filtered_df.sort_values('ROI (%)', ascending=False)
-            elif sort_option == "Volume":
-                filtered_df = filtered_df.sort_values('1h Volume', ascending=False)
-            elif sort_option == "Risk Score":
-                filtered_df = filtered_df.sort_values('Risk Adjusted Utility', ascending=False)
-            elif sort_option == "Item Name":
-                filtered_df = filtered_df.sort_values('Item')
-
-            # Update df to use filtered version
-            df = filtered_df
-
-            if df.empty:
-                show_warning_message("No items match your search criteria. Try adjusting your filters.")
-                return
+            # Temporary simple search until we add the advanced version
+            search_term = ""
+            category_filter = "All Categories"
+            sort_option = "Profit Margin"
 
             # Profit Calculator
             create_profit_calculator()
