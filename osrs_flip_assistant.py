@@ -2844,7 +2844,7 @@ def create_advanced_search():
     return search_term, category_filter, sort_option
 
 def create_profit_calculator():
-    """Create a profit calculator widget"""
+    """Create a profit calculator with real-time updates"""
 
     st.markdown("""
     <div style="
@@ -2854,47 +2854,49 @@ def create_profit_calculator():
         padding: 20px;
         margin: 20px 0;
     ">
-        <h3 style="color: #4CAF50; margin-bottom: 15px;">💰 Quick Profit Calculator</h3>
+        <h3 style="color: #4CAF50; margin-bottom: 15px;">💰 Real-Time Profit Calculator</h3>
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-        buy_price = st.number_input("Buy Price (gp)", min_value=1, value=1000, step=1)
+        buy_price = st.number_input("Buy Price (gp)", min_value=1, value=1000, step=1, key="calc_buy")
 
     with col2:
-        sell_price = st.number_input("Sell Price (gp)", min_value=1, value=1100, step=1)
+        sell_price = st.number_input("Sell Price (gp)", min_value=1, value=1100, step=1, key="calc_sell")
 
     with col3:
-        quantity = st.number_input("Quantity", min_value=1, value=100, step=1)
+        quantity = st.number_input("Quantity", min_value=1, value=100, step=1, key="calc_qty")
 
-    with col4:
-        st.write("")  # Spacer
-        if st.button("Calculate Profit", use_container_width=True):
-            from utils import calculate_ge_tax
+    # Calculate automatically whenever inputs change
+    from utils import calculate_ge_tax
 
-            tax = calculate_ge_tax(sell_price)
-            net_profit_per_item = sell_price - buy_price - tax
-            total_profit = net_profit_per_item * quantity
-            roi = (net_profit_per_item / buy_price) * 100 if buy_price > 0 else 0
+    tax = calculate_ge_tax(sell_price)
+    net_profit_per_item = sell_price - buy_price - tax
+    total_profit = net_profit_per_item * quantity
+    roi = (net_profit_per_item / buy_price) * 100 if buy_price > 0 else 0
 
-            # Display results
-            col_a, col_b, col_c = st.columns(3)
-            with col_a:
-                st.metric("Net Profit/Item", f"{net_profit_per_item:,} gp")
-            with col_b:
-                st.metric("Total Profit", f"{total_profit:,} gp")
-            with col_c:
-                st.metric("ROI", f"{roi:.1f}%")
+    # Display results immediately
+    st.markdown("**💰 Results:**")
+    col_a, col_b, col_c, col_d = st.columns(4)
 
-            # Profit assessment
-            if roi >= 5:
-                show_success_message(f"🟢 Excellent opportunity! {roi:.1f}% ROI")
-            elif roi >= 2:
-                show_info_message(f"🟡 Good opportunity! {roi:.1f}% ROI")
-            else:
-                show_warning_message(f"🔴 Low profit margin - {roi:.1f}% ROI")
+    with col_a:
+        st.metric("Net Profit/Item", f"{net_profit_per_item:,} gp")
+    with col_b:
+        st.metric("Total Profit", f"{total_profit:,} gp")
+    with col_c:
+        st.metric("ROI", f"{roi:.1f}%")
+    with col_d:
+        st.metric("GE Tax", f"{tax:,} gp")
+
+    # Profit assessment
+    if roi >= 5:
+        st.success(f"🟢 Excellent opportunity! {roi:.1f}% ROI")
+    elif roi >= 2:
+        st.info(f"🟡 Good opportunity! {roi:.1f}% ROI")
+    else:
+        st.warning(f"🔴 Low profit margin - {roi:.1f}% ROI")
 
 def create_watchlist_manager():
     """Create advanced watchlist management"""
