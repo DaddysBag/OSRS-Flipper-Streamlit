@@ -164,7 +164,7 @@ def create_preset_management():
     st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 
-def create_display_options():
+def create_simplified_display_options():
     """Create display and UI option controls"""
 
     st.sidebar.markdown('<div class="filter-section">', unsafe_allow_html=True)
@@ -184,18 +184,6 @@ def create_display_options():
     )
     if mobile_view != st.session_state.get('mobile_view', False):
         st.session_state['mobile_view'] = mobile_view
-
-    # Auto-refresh toggle
-    auto_refresh = st.sidebar.checkbox(
-        "Auto-refresh (30s)",
-        help="Automatically refresh data every 30 seconds"
-    )
-
-    if auto_refresh:
-        st.sidebar.caption("⏰ Auto-refreshing every 30 seconds...")
-        import time
-        time.sleep(30)
-        st.rerun()
 
     st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
@@ -285,16 +273,7 @@ def create_complete_sidebar():
     # Risk management (always shown)
     create_risk_management_controls()
 
-    # Preset management
-    create_preset_management()
-
     # Display options
-    show_all = create_display_options()
-
-    # Keyboard shortcuts info
-    create_keyboard_shortcuts_info()
-
-    # Cache stats
-    show_cache_stats()
+    show_all = create_simplified_display_options()
 
     return mode, min_margin, min_volume, min_utility, show_all
