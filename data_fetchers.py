@@ -7,7 +7,17 @@ import requests
 import pandas as pd
 import datetime
 import traceback
-from cache_manager import cache_manager  # Add this line
+
+try:
+    from cache_manager import cache_manager
+except ImportError:
+    # Fallback if cache_manager import fails
+    class FakeCache:
+        def cached_call(self, func, ttl, *args, **kwargs):
+            return func(*args, **kwargs)
+        def get_stats(self):
+            return {'hit_rate': 0, 'total_requests': 0}
+    cache_manager = FakeCache()
 
 # Configuration
 HEADERS = {

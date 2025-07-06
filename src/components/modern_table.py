@@ -5,7 +5,17 @@ Redesigned table that's easy to scan and mobile-friendly
 
 import streamlit as st
 import pandas as pd
-from utils import calculate_ge_tax, get_buy_limits
+
+# Use relative imports to avoid issues
+try:
+    from utils import calculate_ge_tax, get_buy_limits
+except ImportError:
+    # Fallback for import issues
+    def calculate_ge_tax(price):
+        return min(int(price * 0.02), 5000000)
+
+    def get_buy_limits():
+        return {}
 
 
 def create_modern_results_table(df, items_per_page=20):
@@ -118,7 +128,7 @@ def display_paginated_modern_table(df, items_per_page):
 
     # Main table
     current_page_items = df.iloc[start_idx:end_idx]
-    display_modern_table_cards(current_page_items)
+    display_modern_table_cards(current_page_items, start_idx)
 
     # Pagination
     create_modern_pagination(total_pages, total_items, start_idx, end_idx)
@@ -148,43 +158,19 @@ def create_modern_table_header(total_items, df):
 
     with col1:
         exceptional_count = len(df[df['Net Margin'] >= 5000])
-        st.markdown(f"""
-        <div style="text-align: center; padding: 15px; background: rgba(255, 215, 0, 0.1); border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.3);">
-            <div style="font-size: 1.5rem;">🏆</div>
-            <div style="color: #FFD700; font-weight: 600;">{exceptional_count}</div>
-            <div style="color: #B0B8C5; font-size: 0.8rem;">EXCEPTIONAL</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric("🏆 Exceptional", exceptional_count)
 
     with col2:
         safe_count = len(df[df['Risk Rating'] == "🟢 SAFE"])
-        st.markdown(f"""
-        <div style="text-align: center; padding: 15px; background: rgba(50, 205, 50, 0.1); border-radius: 12px; border: 1px solid rgba(50, 205, 50, 0.3);">
-            <div style="font-size: 1.5rem;">🛡️</div>
-            <div style="color: #32CD32; font-weight: 600;">{safe_count}</div>
-            <div style="color: #B0B8C5; font-size: 0.8rem;">SAFE TRADES</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric("🛡️ Safe Trades", safe_count)
 
     with col3:
         avg_margin = df['Net Margin'].mean()
-        st.markdown(f"""
-        <div style="text-align: center; padding: 15px; background: rgba(74, 144, 226, 0.1); border-radius: 12px; border: 1px solid rgba(74, 144, 226, 0.3);">
-            <div style="font-size: 1.5rem;">💰</div>
-            <div style="color: #4A90E2; font-weight: 600;">{format_price(avg_margin)}</div>
-            <div style="color: #B0B8C5; font-size: 0.8rem;">AVG MARGIN</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric("💰 Avg Margin", format_price(avg_margin))
 
     with col4:
         high_liquidity = len(df[df['Liquidity'].str.contains("HIGH")])
-        st.markdown(f"""
-        <div style="text-align: center; padding: 15px; background: rgba(255, 140, 0, 0.1); border-radius: 12px; border: 1px solid rgba(255, 140, 0, 0.3);">
-            <div style="font-size: 1.5rem;">🌊</div>
-            <div style="color: #FF8C00; font-weight: 600;">{high_liquidity}</div>
-            <div style="color: #B0B8C5; font-size: 0.8rem;">HIGH LIQUID</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric("🌊 High Liquid", high_liquidity)
 
 
 def create_view_options():
@@ -204,15 +190,13 @@ def create_view_options():
     return search_term, sort_by, view_mode
 
 
-def display_modern_table_cards(df):
+def display_modern_table_cards(df, start_idx):
     """Display items as modern cards instead of traditional table"""
 
-    st.markdown('<div style="margin: 20px 0;">', unsafe_allow_html=True)
+    st.markdown("### 💎 Opportunities")
 
     for idx, (_, row) in enumerate(df.iterrows()):
-        create_item_card(row, idx)
-
-    st.markdown('</div>', unsafe_allow_html=True)
+        create_item_card(row, start_idx + idx)
 
 
 def create_item_card(row, idx):
@@ -229,8 +213,9 @@ def create_item_card(row, idx):
 
     accent_color = tier_colors.get(row['Profit Tier'], "#4A90E2")
 
-    # Use Streamlit columns instead of complex HTML
+    # Use Streamlit containers and columns for layout
     with st.container():
+        # Card border with color
         st.markdown(f"""
         <div style="
             background: rgba(255, 255, 255, 0.06);
@@ -247,38 +232,40 @@ def create_item_card(row, idx):
         with col1:
             st.markdown(f"**🎯 {row['Item']}**")
         with col2:
-            st.markdown(f"<span style='color: {accent_color}; font-size: 0.8rem;'>{row['Profit Tier']}</span>", unsafe_allow_html=True)
+            st.markdown(f"<span style='color: {accent_color}; font-size: 0.8rem;'>{row['Profit Tier']}</span>",
+                       unsafe_allow_html=True)
 
-        # Main info row
+        # Main info row using Streamlit metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Buy", row['Buy Price Formatted'], delta=None)
+            st.metric("Buy", row['Buy Price Formatted'])
         with col2:
-            st.metric("Sell", row['Sell Price Formatted'], delta=None)
+            st.metric("Sell", row['Sell Price Formatted'])
         with col3:
-            st.metric("Profit", row['Margin Formatted'], delta=f"{row['ROI (%)']:.1f}%")
+            st.metric("Profit", row['Margin Formatted'], f"{row['ROI (%)']:.1f}%")
         with col4:
-            st.metric("Volume", f"{row['1h Volume']:,}", delta=row['Risk Rating'])
+            st.metric("Volume", f"{row['1h Volume']:,}")
 
-        # Action buttons
+        # Action buttons row
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            if st.button(f"📊 Chart", key=f"chart_{idx}_{row['Item']}", help=f"View {row['Item']} chart"):
+            if st.button("📊 Chart", key=f"chart_{idx}_{row['Item']}", help=f"View {row['Item']} chart"):
                 st.session_state['selected_item'] = row['Item']
                 st.session_state.page = 'charts'
                 st.rerun()
         with col2:
-            if st.button(f"⭐ Watch", key=f"watch_{idx}_{row['Item']}", help=f"Add {row['Item']} to watchlist"):
+            if st.button("⭐ Watch", key=f"watch_{idx}_{row['Item']}", help=f"Add {row['Item']} to watchlist"):
                 if 'watchlist' not in st.session_state:
                     st.session_state.watchlist = []
                 if row['Item'] not in st.session_state.watchlist:
                     st.session_state.watchlist.append(row['Item'])
                     st.success(f"Added {row['Item']} to watchlist!")
         with col3:
-            st.write(f"Age: {row['Data Age (min)']:.0f}m")
+            st.write(f"**Age:** {row['Data Age (min)']:.0f}m")
         with col4:
-            st.write(f"{row['Liquidity']}")
+            st.write(f"**Risk:** {row['Risk Rating']}")
 
+        # Close the card div
         st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -358,24 +345,4 @@ def display_no_results():
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
-
-
-# JavaScript for interactive buttons (optional enhancement)
-def inject_table_javascript():
-    """Inject JavaScript for table interactions"""
-
-    st.markdown("""
-    <script>
-    function selectItemForChart(itemName) {
-        // This would integrate with Streamlit's session state
-        console.log('Chart requested for:', itemName);
-        // You can add Streamlit callbacks here
-    }
-    
-    function addToWatchlist(itemName) {
-        console.log('Add to watchlist:', itemName);
-        // You can add Streamlit callbacks here
-    }
-    </script>
     """, unsafe_allow_html=True)
