@@ -61,6 +61,7 @@ from src.components.header import create_enhanced_header, create_navigation, cre
 from src.components.sidebar import create_complete_sidebar
 from src.components.data_loader import load_flip_data, create_debug_section
 from src.components.results_table import display_paginated_table
+from src.components.modern_table import create_modern_results_table
 
 # Load secrets from .streamlit/secrets.toml
 discord_webhook_url = st.secrets["discord"]["webhook_url"]

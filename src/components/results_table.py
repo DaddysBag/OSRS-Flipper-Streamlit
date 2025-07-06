@@ -119,54 +119,13 @@ def process_dataframe_for_display(df):
 
 
 def display_paginated_table(df, items_per_page=25):
-    """Display the results table with pagination"""
+    """Display results using the new modern table design"""
 
-    if df.empty:
-        st.warning("⚠️ No items match your filter criteria. Try adjusting the filters or enable 'Show All'.")
-        return
+    # Import the new modern table
+    from src.components.modern_table import create_modern_results_table
 
-    # Process dataframe for display
-    display_df = process_dataframe_for_display(df)
-
-    # Create table header
-    avg_margin = df['Net Margin'].mean()
-    avg_risk_util = df['Risk Adjusted Utility'].mean() if 'Risk Adjusted Utility' in df.columns else 0
-    create_table_header(len(df), avg_margin, avg_risk_util)
-
-    # Select columns for display
-    columns_to_display = [
-        'Status', 'Item', 'Quick Actions', 'Buy Price', 'Sell Price',
-        'Net Margin', 'ROI (%)', '1h Volume', 'Risk Adjusted Utility',
-        'Manipulation Risk', 'Volatility Level', 'Approx. Offer Price',
-        'Approx. Sell Price', 'Tax', 'GE Limit'
-    ]
-
-    final_display_df = display_df[columns_to_display].copy()
-
-    # Pagination setup
-    total_items = len(final_display_df)
-
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 0
-
-    total_pages = (total_items + items_per_page - 1) // items_per_page
-    start_idx = st.session_state.current_page * items_per_page
-    end_idx = min(start_idx + items_per_page, total_items)
-
-    # Show all option
-    col1, col2 = st.columns([3, 1])
-    with col2:
-        if st.button("📋 Show All in Table", help="Show all items in a scrollable table"):
-            st.session_state['show_all_table'] = True
-            st.rerun()
-
-    # Check if user wants full table
-    if st.session_state.get('show_all_table', False):
-        display_full_table(final_display_df)
-        return
-
-    # Display paginated table
-    display_table_page(final_display_df, start_idx, end_idx, total_pages, total_items)
+    # Use the new modern table instead of the old one
+    create_modern_results_table(df, items_per_page)
 
 
 def display_full_table(df):
