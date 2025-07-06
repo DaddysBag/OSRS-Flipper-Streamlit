@@ -191,12 +191,18 @@ def create_view_options():
 
 
 def display_modern_table_cards(df, start_idx):
-    """Display items as modern cards instead of traditional table"""
+    """Display items as cards or compact table based on view mode"""
 
-    st.markdown("### 💎 Opportunities")
+    # Check view mode from session state (set by create_view_options)
+    view_mode = st.session_state.get('table_view', 'Cards')
 
-    for idx, (_, row) in enumerate(df.iterrows()):
-        create_item_card(row, start_idx + idx)
+    if view_mode == 'Compact':
+        display_compact_table(df, start_idx)
+    else:
+        # Original card view
+        st.markdown("### 💎 Opportunities")
+        for idx, (_, row) in enumerate(df.iterrows()):
+            create_item_card(row, start_idx + idx)
 
 
 def create_item_card(row, idx):
@@ -268,6 +274,79 @@ def create_item_card(row, idx):
         # Close the card div
         st.markdown("</div>", unsafe_allow_html=True)
 
+
+def display_compact_table(df, start_idx):
+    """Display items in a compact, dense table format"""
+
+    st.markdown("### 📊 Trading Opportunities (Compact View)")
+
+    # Create a streamlined dataframe for display
+    display_data = []
+
+    for idx, (_, row) in enumerate(df.iterrows()):
+        # Format the data for compact display
+        display_data.append({
+            '🎯 Item': row['Item'],
+            '💰 Buy': row['Buy Price Formatted'],
+            '💰 Sell': row['Sell Price Formatted'],
+            '📈 Profit': f"{row['Margin Formatted']} ({row['ROI (%)']:.1f}%)",
+            '📊 Volume': f"{row['1h Volume']:,}",
+            '⚡ Risk': row['Risk Rating'],
+            '📋 Actions': f"chart_{start_idx + idx}|watch_{start_idx + idx}|{row['Item']}"
+        })
+
+    # Convert to dataframe for streamlit display
+    compact_df = pd.DataFrame(display_data)
+
+    # Display as streamlit dataframe with custom configuration
+    st.dataframe(
+        compact_df,
+        use_container_width=True,
+        hide_index=True,
+        height=400,  # Fixed height for scrolling
+        column_config={
+            "📋 Actions": st.column_config.TextColumn(
+                "Actions",
+                help="Click to chart or watch items",
+                width="medium"
+            )
+        }
+    )
+
+    # Add action buttons below table for selected items
+    create_compact_action_buttons(df, start_idx)
+
+
+def create_compact_action_buttons(df, start_idx):
+    """Create action buttons for compact view"""
+
+    st.markdown("#### ⚡ Quick Actions")
+
+    # Item selector for actions
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        selected_item = st.selectbox(
+            "Select item for actions:",
+            options=df['Item'].tolist(),
+            key=f"compact_item_selector_{start_idx}"
+        )
+
+    with col2:
+        if st.button("📊 Chart", key=f"compact_chart_{start_idx}"):
+            if selected_item:
+                st.session_state['selected_item'] = selected_item
+                st.session_state.page = 'charts'
+                st.rerun()
+
+    with col3:
+        if st.button("⭐ Watch", key=f"compact_watch_{start_idx}"):
+            if selected_item:
+                if 'watchlist' not in st.session_state:
+                    st.session_state.watchlist = []
+                if selected_item not in st.session_state.watchlist:
+                    st.session_state.watchlist.append(selected_item)
+                    st.success(f"Added {selected_item} to watchlist!")
 
 def create_modern_pagination(total_pages, total_items, start_idx, end_idx):
     """Create modern pagination controls"""
