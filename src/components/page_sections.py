@@ -23,9 +23,6 @@ def create_results_section(df):
     """Create the main results section"""
     st.markdown("## 📊 Trading Opportunities")
 
-    # Performance metrics at the top
-    create_performance_metrics(df)
-
     # Main results table
     display_paginated_table(df)
 

@@ -87,7 +87,6 @@ def load_data_with_progress(filters):
     force_refresh = st.button("🔄 Refresh Data", type="primary")
 
     df, name2id = load_flip_data(filters['mode'], force_refresh)
-    create_debug_section(filters['margin'], filters['volume'], filters['utility'], filters['show_all'])
 
     return df, name2id
 
@@ -98,7 +97,6 @@ def render_results_content(df, filters):
     create_tools_section(df)
     create_navigation_section(df)
     create_management_section(df)
-    create_status_section(df, filters['show_all'])
 
 
 def render_no_results_content(filters):
