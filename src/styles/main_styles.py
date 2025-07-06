@@ -534,260 +534,100 @@ def inject_modern_osrs_styles():
             outline: none !important;
         }
         
-        /* Premium Table Visual Hierarchy & Profit Psychology */
+        /* Simplified Premium Table Styling */
         .stDataFrame {
-            background: linear-gradient(145deg, 
-                rgba(255, 255, 255, 0.08) 0%, 
-                rgba(255, 215, 0, 0.02) 50%, 
-                rgba(255, 255, 255, 0.04) 100%) !important;
-            border: 1px solid rgba(255, 215, 0, 0.2) !important;
-            border-radius: 20px !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 12px !important;
             overflow: hidden !important;
-            box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.3),
-                0 2px 8px rgba(255, 215, 0, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-            backdrop-filter: blur(15px) !important;
-            position: relative !important;
-            margin: 20px 0 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+            margin: 16px 0 !important;
         }
-        
-        .stDataFrame::before {
-            content: '' !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            height: 3px !important;
-            background: linear-gradient(90deg, 
-                rgba(255, 215, 0, 0.8) 0%, 
-                rgba(74, 144, 226, 0.6) 50%, 
-                rgba(255, 215, 0, 0.8) 100%) !important;
-            border-radius: 20px 20px 0 0 !important;
-        }
-        
-        /* Premium Table Structure */
+
         .stDataFrame table {
             background: transparent !important;
             font-family: 'Inter', sans-serif !important;
-            border-collapse: separate !important;
-            border-spacing: 0 2px !important;
-            width: 100% !important;
         }
-        
-        /* Enhanced Premium Headers */
+
+        /* Enhanced Headers */
         .stDataFrame th {
-            background: linear-gradient(135deg, 
-                rgba(255, 215, 0, 0.15) 0%, 
-                rgba(74, 144, 226, 0.1) 50%, 
-                rgba(255, 215, 0, 0.08) 100%) !important;
-            color: var(--osrs-gold) !important;
-            font-weight: 800 !important;
-            font-size: 0.8rem !important;
+            background: rgba(255, 215, 0, 0.1) !important;
+            color: #FFD700 !important;
+            font-weight: 700 !important;
+            font-size: 0.85rem !important;
             text-transform: uppercase !important;
-            letter-spacing: 0.1em !important;
-            border: none !important;
-            padding: 18px 14px !important;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
-            position: relative !important;
-            backdrop-filter: blur(10px) !important;
+            letter-spacing: 0.05em !important;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
+            padding: 16px 12px !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
         }
-        
-        .stDataFrame th::after {
-            content: '' !important;
-            position: absolute !important;
-            bottom: 0 !important;
-            left: 10% !important;
-            right: 10% !important;
-            height: 2px !important;
-            background: linear-gradient(90deg, 
-                transparent, 
-                rgba(255, 215, 0, 0.6), 
-                transparent) !important;
-        }
-        
-        /* Profit-Based Row Psychology & Visual Hierarchy */
+
+        /* Better Row Styling */
         .stDataFrame td {
-            border: none !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
             color: var(--text-primary) !important;
-            padding: 16px 14px !important;
+            padding: 14px 12px !important;
             font-size: 0.9rem !important;
-            font-weight: 500 !important;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            position: relative !important;
-            backdrop-filter: blur(5px) !important;
+            transition: all 0.2s ease !important;
         }
-        
-        /* Exceptional Profit Rows (5000+ gp) - Gold Theme */
-        .stDataFrame tr:has-text("🏆 EXCEPTIONAL") {
-            background: linear-gradient(90deg, 
-                rgba(255, 215, 0, 0.12) 0%, 
-                rgba(255, 215, 0, 0.06) 50%, 
-                rgba(255, 215, 0, 0.12) 100%) !important;
-            border-left: 4px solid #FFD700 !important;
-            box-shadow: 
-                0 2px 8px rgba(255, 215, 0, 0.2),
-                inset 0 1px 0 rgba(255, 215, 0, 0.3) !important;
-        }
-        
-        .stDataFrame tr:has-text("🏆 EXCEPTIONAL") td {
-            color: #FFFFFF !important;
-            font-weight: 600 !important;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-        }
-        
-        .stDataFrame tr:has-text("🏆 EXCEPTIONAL"):hover {
-            background: linear-gradient(90deg, 
-                rgba(255, 215, 0, 0.2) 0%, 
-                rgba(255, 215, 0, 0.1) 50%, 
-                rgba(255, 215, 0, 0.2) 100%) !important;
-            transform: translateY(-2px) scale(1.01) !important;
-            box-shadow: 
-                0 8px 25px rgba(255, 215, 0, 0.3),
-                inset 0 1px 0 rgba(255, 215, 0, 0.4) !important;
-        }
-        
-        /* Excellent Profit Rows (2000+ gp) - Green Theme */
-        .stDataFrame tr:has-text("🥇 EXCELLENT") {
-            background: linear-gradient(90deg, 
-                rgba(76, 175, 80, 0.1) 0%, 
-                rgba(76, 175, 80, 0.04) 50%, 
-                rgba(76, 175, 80, 0.1) 100%) !important;
-            border-left: 3px solid #4CAF50 !important;
-            box-shadow: 
-                0 2px 6px rgba(76, 175, 80, 0.15),
-                inset 0 1px 0 rgba(76, 175, 80, 0.2) !important;
-        }
-        
-        .stDataFrame tr:has-text("🥇 EXCELLENT"):hover {
-            background: linear-gradient(90deg, 
-                rgba(76, 175, 80, 0.15) 0%, 
-                rgba(76, 175, 80, 0.08) 50%, 
-                rgba(76, 175, 80, 0.15) 100%) !important;
-            transform: translateY(-1px) scale(1.005) !important;
-            box-shadow: 
-                0 6px 20px rgba(76, 175, 80, 0.2),
-                inset 0 1px 0 rgba(76, 175, 80, 0.3) !important;
-        }
-        
-        /* Good Profit Rows (1000+ gp) - Blue Theme */
-        .stDataFrame tr:has-text("🥈 GOOD") {
-            background: linear-gradient(90deg, 
-                rgba(74, 144, 226, 0.08) 0%, 
-                rgba(74, 144, 226, 0.03) 50%, 
-                rgba(74, 144, 226, 0.08) 100%) !important;
-            border-left: 2px solid #4A90E2 !important;
-            box-shadow: 
-                0 1px 4px rgba(74, 144, 226, 0.1),
-                inset 0 1px 0 rgba(74, 144, 226, 0.15) !important;
-        }
-        
-        .stDataFrame tr:has-text("🥈 GOOD"):hover {
-            background: linear-gradient(90deg, 
-                rgba(74, 144, 226, 0.12) 0%, 
-                rgba(74, 144, 226, 0.06) 50%, 
-                rgba(74, 144, 226, 0.12) 100%) !important;
+
+        /* Effective Row Hover */
+        .stDataFrame tbody tr:hover {
+            background: rgba(255, 215, 0, 0.08) !important;
             transform: translateY(-1px) !important;
-            box-shadow: 
-                0 4px 15px rgba(74, 144, 226, 0.15),
-                inset 0 1px 0 rgba(74, 144, 226, 0.25) !important;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.15) !important;
         }
-        
-        /* Decent Profit Rows (500+ gp) - Orange Theme */
-        .stDataFrame tr:has-text("🥉 DECENT") {
-            background: linear-gradient(90deg, 
-                rgba(255, 140, 0, 0.06) 0%, 
-                rgba(255, 140, 0, 0.02) 50%, 
-                rgba(255, 140, 0, 0.06) 100%) !important;
-            border-left: 2px solid #FF8C00 !important;
-            box-shadow: inset 0 1px 0 rgba(255, 140, 0, 0.1) !important;
-        }
-        
-        .stDataFrame tr:has-text("🥉 DECENT"):hover {
-            background: linear-gradient(90deg, 
-                rgba(255, 140, 0, 0.1) 0%, 
-                rgba(255, 140, 0, 0.04) 50%, 
-                rgba(255, 140, 0, 0.1) 100%) !important;
-            box-shadow: 
-                0 2px 10px rgba(255, 140, 0, 0.1),
-                inset 0 1px 0 rgba(255, 140, 0, 0.2) !important;
-        }
-        
-        /* Low Profit Rows - Muted Theme */
-        .stDataFrame tr:has-text("⚠️ LOW") {
-            background: linear-gradient(90deg, 
-                rgba(255, 255, 255, 0.03) 0%, 
-                rgba(255, 255, 255, 0.01) 50%, 
-                rgba(255, 255, 255, 0.03) 100%) !important;
-            border-left: 1px solid rgba(255, 255, 255, 0.2) !important;
-            opacity: 0.8 !important;
-        }
-        
-        .stDataFrame tr:has-text("⚠️ LOW"):hover {
-            background: linear-gradient(90deg, 
-                rgba(255, 255, 255, 0.06) 0%, 
-                rgba(255, 255, 255, 0.02) 50%, 
-                rgba(255, 255, 255, 0.06) 100%) !important;
-            opacity: 1 !important;
-        }
-        
-        /* Enhanced Risk Indicator Integration */
-        .stDataFrame td:has-text("🟢 SAFE") {
-            position: relative !important;
-        }
-        
-        .stDataFrame td:has-text("🟢 SAFE")::before {
-            content: '🛡️' !important;
-            position: absolute !important;
-            right: -15px !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            opacity: 0.6 !important;
-            font-size: 0.8rem !important;
-        }
-        
-        /* Alternating Row Enhancement */
+
+        /* Simple Alternating Rows */
         .stDataFrame tbody tr:nth-child(even) {
             background: rgba(255, 255, 255, 0.02) !important;
         }
-        
+
         .stDataFrame tbody tr:nth-child(odd) {
             background: rgba(0, 0, 0, 0.02) !important;
         }
-        
-        /* Table Integration Polish - Better Section Flow */
-        .stDataFrame {
-            margin-top: 8px !important;
-            border-top: 3px solid transparent !important;
-            border-image: linear-gradient(90deg, 
-                rgba(255, 215, 0, 0.6), 
-                rgba(74, 144, 226, 0.4), 
-                rgba(255, 215, 0, 0.6)) 1 !important;
+
+        /* Risk Indicator Enhancement */
+        .stDataFrame td:contains("HIGH RISK") {
+            color: #FF6B6B !important;
+            font-weight: 600 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
         }
-        
-        /* Premium Row Spacing and Typography */
-        .stDataFrame tr {
-            margin-bottom: 2px !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+        .stDataFrame td:contains("SAFE") {
+            color: #4CAF50 !important;
+            font-weight: 600 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
         }
-        
+
+        /* Item Name Column Enhancement */
         .stDataFrame td:first-child {
             font-weight: 600 !important;
             color: #FFFFFF !important;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
         }
-        
-        /* Volume-based visual cues */
-        .stDataFrame td:nth-child(5) {
-            font-weight: 600 !important;
-            font-family: 'JetBrains Mono', monospace !important;
-        }
-        
-        /* Profit column enhancement */
+
+        /* Profit Column Enhancement */
         .stDataFrame td:nth-child(4) {
             font-weight: 700 !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+            color: #FFD700 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        /* Enhanced Risk Indicators */
+        .stDataFrame td:has-text("🟢") {
+            background: linear-gradient(90deg, rgba(76, 175, 80, 0.1), transparent) !important;
+            border-left: 3px solid #4CAF50 !important;
+        }
+        
+        .stDataFrame td:has-text("🟡") {
+            background: linear-gradient(90deg, rgba(255, 193, 7, 0.1), transparent) !important;
+            border-left: 3px solid #FFC107 !important;
+        }
+        
+        .stDataFrame td:has-text("🔴") {
+            background: linear-gradient(90deg, rgba(244, 67, 54, 0.1), transparent) !important;
+            border-left: 3px solid #F44336 !important;
         }
         
         /* Profit/Loss Visual Enhancements */
