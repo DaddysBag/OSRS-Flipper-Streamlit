@@ -5,7 +5,6 @@ Reusable UI components with OSRS theming
 
 import streamlit as st
 
-
 def create_osrs_card(title, content, icon="📊", accent_color="var(--osrs-blue-light)"):
     """Create a modern OSRS-themed card"""
 
@@ -20,7 +19,6 @@ def create_osrs_card(title, content, icon="📊", accent_color="var(--osrs-blue-
         </div>
     </div>
     """, unsafe_allow_html=True)
-
 
 def create_status_badge(status, size="normal"):
     """Create modern status badges"""
@@ -67,33 +65,27 @@ def create_status_badge(status, size="normal"):
     </span>
     """
 
+def create_metric_card(label, value, delta=None, icon="📊", color="#4A90E2"):
+    """Create enhanced metric cards using native Streamlit components"""
 
-def create_metric_card(label, value, delta=None, icon="📊", color="var(--osrs-blue-light)"):
-    """Create enhanced metric cards"""
+    # Use native Streamlit metric instead of custom HTML
+    if delta:
+        # Clean delta text
+        clean_delta = str(delta)
+        # Determine if it's positive or negative for Streamlit's delta color
+        delta_color = "normal" if any(word in clean_delta.lower() for word in ["fresh", "active", "ready", "optimized", "connected"]) else "inverse"
 
-    # Clean up the delta to avoid showing CSS
-    delta_display = ""
-    if delta and not delta.startswith("var(") and not delta.startswith("color:"):
-        delta_color = "#32CD32" if "+" in str(delta) or "Fresh" in str(delta) or "Active" in str(delta) or "Optimized" in str(delta) else "#FF6B6B"
-        delta_display = f"""
-        <div style="color: {delta_color}; font-size: 0.75rem; font-weight: 500; margin-top: 4px;">
-            {delta}
-        </div>
-        """
-
-    st.markdown(f"""
-    <div class="osrs-card" style="text-align: center; padding: 20px;">
-        <div style="font-size: 1.5rem; margin-bottom: 8px;">{icon}</div>
-        <div style="color: {color}; font-size: 1.875rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;">
-            {value}
-        </div>
-        <div style="color: #B0B8C5; font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">
-            {label}
-        </div>
-        {delta_display}
-    </div>
-    """, unsafe_allow_html=True)
-
+        st.metric(
+            label=f"{icon} {label}",
+            value=value,
+            delta=clean_delta,
+            delta_color=delta_color
+        )
+    else:
+        st.metric(
+            label=f"{icon} {label}",
+            value=value
+        )
 
 def create_hero_section():
     """Create an engaging hero section"""
@@ -146,7 +138,6 @@ def create_hero_section():
     </div>
     """, unsafe_allow_html=True)
 
-
 def create_loading_state(message="Loading OSRS market data..."):
     """Create an engaging loading state"""
 
@@ -175,7 +166,6 @@ def create_loading_state(message="Loading OSRS market data..."):
     </div>
     """, unsafe_allow_html=True)
 
-
 def create_quick_stats_row(stats_data):
     """Create a row of quick statistics"""
 
@@ -184,7 +174,6 @@ def create_quick_stats_row(stats_data):
     for i, (label, value, icon, color) in enumerate(stats_data):
         with cols[i]:
             create_metric_card(label, value, icon=icon, color=color)
-
 
 def create_feature_highlight(title, description, icon, color="var(--osrs-blue-light)"):
     """Create feature highlight cards"""
@@ -229,7 +218,6 @@ def create_feature_highlight(title, description, icon, color="var(--osrs-blue-li
     </div>
     """, unsafe_allow_html=True)
 
-
 def create_section_divider(title, icon="⚔️"):
     """Create styled section dividers"""
 
@@ -268,7 +256,6 @@ def create_section_divider(title, icon="⚔️"):
     </div>
     """, unsafe_allow_html=True)
 
-
 def create_tooltip(text, tooltip_text):
     """Create tooltips for better UX"""
 
@@ -282,7 +269,6 @@ def create_tooltip(text, tooltip_text):
         {text}
     </span>
     """
-
 
 def create_progress_indicator(current_step, total_steps, step_name):
     """Create progress indicators for multi-step processes"""
