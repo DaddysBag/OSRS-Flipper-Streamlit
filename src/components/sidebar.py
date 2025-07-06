@@ -24,7 +24,7 @@ def create_trading_strategy_selector():
 
     mode = st.sidebar.selectbox(
         "Select Trading Mode",
-        ["Custom", "Low-Risk", "High-ROI", "Passive Overnight", "High Volume"],
+        ["High Volume", "Custom", "Low-Risk", "High-ROI", "Passive Overnight"],
         help="Choose your trading strategy"
     )
 

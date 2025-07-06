@@ -208,7 +208,7 @@ def create_view_options():
     with col3:
         view_mode = st.selectbox(
             "View",
-            ["Cards", "Compact"],
+            ["Compact", "Cards"],
             key="table_view",
             label_visibility="collapsed"
         )
