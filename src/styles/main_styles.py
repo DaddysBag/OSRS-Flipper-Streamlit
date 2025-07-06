@@ -344,22 +344,174 @@ def inject_modern_osrs_styles():
             letter-spacing: 0.1em !important;
         }
 
-        /* Enhanced Sidebar */
+        /* Premium Enhanced Sidebar */
         .css-1d391kg, .css-1cypcdb, .css-17eq0hr {
-            background: var(--bg-secondary) !important;
-            border-right: 1px solid var(--border-primary) !important;
-            backdrop-filter: blur(20px) !important;
+            background: linear-gradient(180deg, 
+                var(--bg-secondary) 0%, 
+                rgba(26, 26, 46, 0.95) 50%, 
+                var(--bg-tertiary) 100%) !important;
+            border-right: 1px solid var(--border-accent) !important;
+            backdrop-filter: blur(25px) !important;
+            box-shadow: 
+                2px 0 20px rgba(0, 0, 0, 0.3),
+                inset -1px 0 0 rgba(255, 215, 0, 0.1) !important;
         }
 
-        .css-1d391kg .stSelectbox > div > div {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border-primary) !important;
-            border-radius: 8px !important;
-            color: var(--text-primary) !important;
+        /* Enhanced Sidebar Section Cards */
+        .filter-section {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.08) 0%, 
+                rgba(255, 215, 0, 0.02) 50%, 
+                rgba(255, 255, 255, 0.04) 100%) !important;
+            border: 1px solid rgba(255, 215, 0, 0.15) !important;
+            border-radius: 16px !important;
+            padding: 20px !important;
+            margin: 16px 0 !important;
+            backdrop-filter: blur(15px) !important;
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+            position: relative !important;
+            overflow: hidden !important;
+        }
+
+        .filter-section::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            height: 2px !important;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 215, 0, 0.5), 
+                transparent) !important;
+        }
+
+        .filter-section:hover {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.12) 0%, 
+                rgba(255, 215, 0, 0.04) 50%, 
+                rgba(255, 255, 255, 0.08) 100%) !important;
+            border-color: rgba(255, 215, 0, 0.25) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 
+                0 12px 35px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+        }
+
+        /* Enhanced Sidebar Headers */
+        .css-1d391kg h3 {
+            color: var(--osrs-gold) !important;
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            margin-bottom: 16px !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+
+        .css-1d391kg h3::after {
+            content: '' !important;
+            flex: 1 !important;
+            height: 1px !important;
+            background: linear-gradient(90deg, 
+                rgba(255, 215, 0, 0.3), 
+                transparent) !important;
+            margin-left: 12px !important;
+        }
+
+        /* Enhanced Sidebar Sliders */
+        .css-1d391kg .stSlider {
+            margin: 12px 0 !important;
         }
 
         .css-1d391kg .stSlider > div > div > div {
-            color: var(--text-accent) !important;
+            background: linear-gradient(135deg, 
+                var(--osrs-blue) 0%, 
+                var(--osrs-blue-light) 100%) !important;
+            border-radius: 8px !important;
+            box-shadow: 
+                0 2px 8px rgba(74, 144, 226, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .css-1d391kg .stSlider > div > div > div > div {
+            background: linear-gradient(135deg, 
+                var(--osrs-gold) 0%, 
+                var(--osrs-gold-dark) 100%) !important;
+            border: 2px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 
+                0 4px 12px rgba(255, 215, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .css-1d391kg .stSlider > div > div > div > div:hover {
+            transform: scale(1.1) !important;
+            box-shadow: 
+                0 6px 16px rgba(255, 215, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+        }
+
+        /* Enhanced Sidebar Selectboxes */
+        .css-1d391kg .stSelectbox > div > div {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                rgba(255, 215, 0, 0.03) 100%) !important;
+            border: 1px solid rgba(255, 215, 0, 0.2) !important;
+            border-radius: 12px !important;
+            backdrop-filter: blur(10px) !important;
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .css-1d391kg .stSelectbox > div > div:hover {
+            border-color: rgba(255, 215, 0, 0.4) !important;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.15) 0%, 
+                rgba(255, 215, 0, 0.06) 100%) !important;
+            box-shadow: 
+                0 6px 16px rgba(255, 215, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+        }
+
+        /* Enhanced Sidebar Text Inputs */
+        .css-1d391kg .stTextInput > div > div > input {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.08) 0%, 
+                rgba(255, 215, 0, 0.02) 100%) !important;
+            border: 1px solid rgba(255, 215, 0, 0.15) !important;
+            border-radius: 10px !important;
+            color: var(--text-primary) !important;
+            font-weight: 500 !important;
+            backdrop-filter: blur(8px) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .css-1d391kg .stTextInput > div > div > input:focus {
+            border-color: var(--osrs-gold) !important;
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.08) 0%, 
+                rgba(255, 255, 255, 0.06) 100%) !important;
+            box-shadow: 
+                0 0 0 3px rgba(255, 215, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+        }
+
+        /* Enhanced Sidebar Captions & Help Text */
+        .css-1d391kg .caption,
+        .css-1d391kg small,
+        .css-1d391kg [data-testid="help-tooltip"] {
+            color: rgba(176, 184, 197, 0.9) !important;
+            font-size: 0.8rem !important;
+            font-weight: 400 !important;
+            line-height: 1.4 !important;
+            margin-top: 4px !important;
         }
 
         /* Enhanced Input Fields */
@@ -622,6 +774,25 @@ def inject_modern_osrs_styles():
             [data-testid="metric-container"] {
                 padding: 16px !important;
             }
+        }
+        
+        /* Filter Section Animation */
+        @keyframes section-glow {
+            0%, 100% { 
+                box-shadow: 
+                    0 8px 25px rgba(0, 0, 0, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+            50% { 
+                box-shadow: 
+                    0 8px 25px rgba(0, 0, 0, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                    0 0 20px rgba(255, 215, 0, 0.1);
+            }
+        }
+
+        .filter-section.active {
+            animation: section-glow 3s ease-in-out !important;
         }
 
         /* Utility Classes */
