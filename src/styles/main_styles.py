@@ -218,40 +218,124 @@ def inject_modern_osrs_styles():
             box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1) !important;
             outline: none !important;
         }
-
-        /* Modern Table Styling */
+        
+        /* Enhanced Modern Table Styling */
         .stDataFrame {
             background: var(--bg-card) !important;
             border: 1px solid var(--border-primary) !important;
-            border-radius: 12px !important;
+            border-radius: 16px !important;
             overflow: hidden !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
         }
-
+        
         .stDataFrame table {
             background: transparent !important;
             font-family: 'Inter', sans-serif !important;
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
         }
-
+        
         .stDataFrame th {
-            background: var(--bg-tertiary) !important;
+            background: linear-gradient(135deg, var(--bg-tertiary), rgba(255, 215, 0, 0.05)) !important;
             color: var(--text-accent) !important;
-            font-weight: 600 !important;
-            font-size: 0.8rem !important;
+            font-weight: 700 !important;
+            font-size: 0.75rem !important;
             text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
-            border-bottom: 2px solid var(--border-accent) !important;
-            padding: 12px 8px !important;
+            letter-spacing: 0.08em !important;
+            border-bottom: 3px solid rgba(255, 215, 0, 0.3) !important;
+            padding: 16px 12px !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+            position: relative !important;
         }
-
+        
+        .stDataFrame th::after {
+            content: '' !important;
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            height: 2px !important;
+            background: linear-gradient(90deg, transparent, #FFD700, transparent) !important;
+        }
+        
         .stDataFrame td {
-            border-bottom: 1px solid var(--border-primary) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
             color: var(--text-primary) !important;
-            padding: 12px 8px !important;
+            padding: 14px 12px !important;
             font-size: 0.875rem !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            position: relative !important;
         }
-
+        
+        .stDataFrame tr {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        
         .stDataFrame tr:hover {
-            background: rgba(255, 215, 0, 0.05) !important;
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.08), rgba(74, 144, 226, 0.05)) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15) !important;
+        }
+        
+        .stDataFrame tr:hover td {
+            border-color: rgba(255, 215, 0, 0.2) !important;
+        }
+        
+        /* Enhanced Risk Indicators */
+        .stDataFrame td:has-text("🟢") {
+            background: linear-gradient(90deg, rgba(76, 175, 80, 0.1), transparent) !important;
+            border-left: 3px solid #4CAF50 !important;
+        }
+        
+        .stDataFrame td:has-text("🟡") {
+            background: linear-gradient(90deg, rgba(255, 193, 7, 0.1), transparent) !important;
+            border-left: 3px solid #FFC107 !important;
+        }
+        
+        .stDataFrame td:has-text("🔴") {
+            background: linear-gradient(90deg, rgba(244, 67, 54, 0.1), transparent) !important;
+            border-left: 3px solid #F44336 !important;
+        }
+        
+        /* Profit/Loss Visual Enhancements */
+        .stDataFrame td:has-text("EXCEPTIONAL") {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(76, 175, 80, 0.1)) !important;
+            font-weight: 600 !important;
+            color: #FFD700 !important;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .stDataFrame td:has-text("EXCELLENT") {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.12), rgba(74, 144, 226, 0.08)) !important;
+            font-weight: 600 !important;
+            color: #4CAF50 !important;
+        }
+        
+        /* Volume Indicators Enhancement */
+        .stDataFrame td:has-text("HIGH") {
+            position: relative !important;
+        }
+        
+        .stDataFrame td:has-text("HIGH")::before {
+            content: '🌊' !important;
+            position: absolute !important;
+            left: -20px !important;
+            opacity: 0.6 !important;
+            animation: wave 2s ease-in-out infinite !important;
+        }
+        
+        @keyframes wave {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        /* Alternating Row Enhancement */
+        .stDataFrame tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02) !important;
+        }
+        
+        .stDataFrame tr:nth-child(odd) {
+            background: rgba(0, 0, 0, 0.02) !important;
         }
 
         /* Status Indicators */
