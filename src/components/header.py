@@ -23,7 +23,7 @@ def create_enhanced_header():
 
 
 def create_simple_status_indicators():
-    """Clean status line with minimal padding"""
+    """Clean status line with glassmorphism effect - Fixed version"""
 
     # Calculate time since last update (keep existing logic)
     current_time = datetime.datetime.now()
@@ -33,141 +33,135 @@ def create_simple_status_indicators():
     time_diff = current_time - st.session_state.last_update_time
     minutes_ago = int(time_diff.total_seconds() / 60)
 
-    # Determine status
+    # Determine status (simplified)
     if minutes_ago < 5:
         data_status = "🟢 Data Fresh"
         data_detail = "Recently updated"
+        status_color = "#4CAF50"
     elif minutes_ago < 15:
         data_status = "🟡 Data Recent"
         data_detail = f"Updated {minutes_ago}m ago"
+        status_color = "#FFC107"
     else:
         data_status = "🔴 Needs refresh"
         data_detail = f"Last update: {minutes_ago}m ago"
+        status_color = "#F44336"
 
     # System mode
     alert_active = not st.session_state.get('show_all_table', False)
     if alert_active:
         system_status = "🔔 Alert Mode"
         system_detail = "Monitoring opportunities"
+        system_color = "#FF9800"
     else:
         system_status = "📋 Browse Mode"
         system_detail = "Showing all items"
+        system_color = "#74C0FC"
 
     # Minimal layout with reduced spacing
     col1, col2 = st.columns([3, 1])
 
     with col1:
-        # Status indicators with minimal padding
+        # Fixed glassmorphism status indicators
         st.markdown(f"""
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 24px;
-                    padding: 12px 20px;
-                    background: linear-gradient(135deg, 
-                        rgba(255, 255, 255, 0.08), 
-                        rgba(255, 215, 0, 0.04),
-                        rgba(74, 144, 226, 0.03)
-                    );
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 215, 0, 0.15);
-                    border-radius: 16px;
-                    font-size: 0.9rem;
-                    margin: 8px 0;
-                    box-shadow: 
-                        0 8px 32px rgba(0, 0, 0, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                        0 1px 3px rgba(255, 215, 0, 0.1);
-                    position: relative;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        height: 1px;
-                        background: linear-gradient(90deg, 
-                            transparent, 
-                            rgba(255, 215, 0, 0.4), 
-                            transparent
-                        );
-                    "></div>
+        <div class="status-container">
+            <div class="status-item">
+                <div class="status-dot" style="background: {status_color}; box-shadow: 0 0 8px {status_color};"></div>
+                <span class="status-text">{data_status}</span>
+                <span class="status-detail">({data_detail})</span>
+            </div>
+            <div class="status-divider"></div>
+            <div class="status-item">
+                <div class="status-dot" style="background: {system_color}; box-shadow: 0 0 8px {system_color};"></div>
+                <span class="status-text">{system_status}</span>
+                <span class="status-detail">({system_detail})</span>
+            </div>
+        </div>
 
-                    <div style="
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        position: relative;
-                    ">
-                        <div class="status-pulse" style="
-                            width: 8px;
-                            height: 8px;
-                            border-radius: 50%;
-                            background: {get_status_color(data_status)};
-                            box-shadow: 0 0 8px {get_status_color(data_status)};
-                            animation: pulse 2s infinite;
-                        "></div>
-                        <span style="
-                            font-weight: 600;
-                            color: #FFFFFF;
-                            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-                        ">{data_status}</span>
-                        <span style="
-                            color: rgba(176, 184, 197, 0.9);
-                            font-size: 0.85rem;
-                        ">({data_detail})</span>
-                    </div>
+        <style>
+        .status-container {{
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.08), 
+                rgba(255, 215, 0, 0.04),
+                rgba(74, 144, 226, 0.03)
+            );
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 16px;
+            margin: 8px 0;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 1px 3px rgba(255, 215, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }}
 
-                    <div style="
-                        width: 1px;
-                        height: 20px;
-                        background: linear-gradient(180deg, 
-                            transparent, 
-                            rgba(255, 255, 255, 0.1), 
-                            transparent
-                        );
-                    "></div>
+        .status-container::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 215, 0, 0.4), 
+                transparent
+            );
+        }}
 
-                    <div style="
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        position: relative;
-                    ">
-                        <div style="
-                            width: 8px;
-                            height: 8px;
-                            border-radius: 50%;
-                            background: {get_system_status_color(system_status)};
-                            box-shadow: 0 0 8px {get_system_status_color(system_status)};
-                        "></div>
-                        <span style="
-                            font-weight: 600;
-                            color: #FFFFFF;
-                            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-                        ">{system_status}</span>
-                        <span style="
-                            color: rgba(176, 184, 197, 0.9);
-                            font-size: 0.85rem;
-                        ">({system_detail})</span>
-                    </div>
-                </div>
+        .status-item {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
 
-                <style>
-                @keyframes pulse {{
-                    0%, 100% {{ 
-                        opacity: 1; 
-                        transform: scale(1); 
-                    }}
-                    50% {{ 
-                        opacity: 0.7; 
-                        transform: scale(1.1); 
-                    }}
-                }}
-                </style>
-                """, unsafe_allow_html=True)
+        .status-dot {{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }}
+
+        .status-text {{
+            font-weight: 600;
+            color: #FFFFFF;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            font-size: 0.9rem;
+        }}
+
+        .status-detail {{
+            color: rgba(176, 184, 197, 0.9);
+            font-size: 0.85rem;
+        }}
+
+        .status-divider {{
+            width: 1px;
+            height: 20px;
+            background: linear-gradient(180deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.1), 
+                transparent
+            );
+        }}
+
+        @keyframes pulse {{
+            0%, 100% {{ 
+                opacity: 1; 
+                transform: scale(1); 
+            }}
+            50% {{ 
+                opacity: 0.7; 
+                transform: scale(1.1); 
+            }}
+        }}
+        </style>
+        """, unsafe_allow_html=True)
 
     with col2:
         # Refresh button with minimal styling
