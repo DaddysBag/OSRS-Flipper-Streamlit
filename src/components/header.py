@@ -32,23 +32,25 @@ def create_enhanced_header():
 
     with col1:
         api_status = "Connected" if cache_stats['hit_rate'] > 0 else "Disconnected"
-        status_delta = "✅ Online" if cache_stats['hit_rate'] > 0 else "❌ Offline"
-        create_metric_card("API Status", api_status, delta=status_delta, icon="🌐")
+        status_delta = "Online" if cache_stats['hit_rate'] > 0 else "Offline"
+        create_metric_card("API Status", api_status, delta=status_delta, icon="🌐",
+                           color="#32CD32" if cache_stats['hit_rate'] > 0 else "#FF6B6B")
 
     with col2:
         cache_performance = f"{cache_stats['hit_rate']:.1f}%"
-        cache_delta = "Optimized" if cache_stats['hit_rate'] > 70 else "Needs improvement"
-        create_metric_card("Cache Performance", cache_performance, delta=cache_delta, icon="⚡")
+        cache_delta = "Optimized" if cache_stats['hit_rate'] > 70 else "Needs Improvement"
+        create_metric_card("Cache Performance", cache_performance, delta=cache_delta, icon="⚡", color="#4A90E2")
 
     with col3:
         data_age = f"{minutes_ago}m ago"
         freshness_delta = "Fresh" if minutes_ago < 5 else "Recent" if minutes_ago < 15 else "Stale"
-        create_metric_card("Data Freshness", data_age, delta=freshness_delta, icon="⏰")
+        create_metric_card("Data Freshness", data_age, delta=freshness_delta, icon="⏰", color="#FF8C00")
 
     with col4:
         alert_value = "Active" if not st.session_state.get('show_all_table', False) else "Disabled"
-        alert_delta = "Ready" if alert_value == "Active" else "Disabled"
-        create_metric_card("Alert System", alert_value, delta=alert_delta, icon="🔔")
+        alert_delta = "Ready" if alert_value == "Active" else "System Disabled"
+        create_metric_card("Alert System", alert_value, delta=alert_delta, icon="🔔",
+                           color="#FFD700" if alert_value == "Active" else "#8A94A6")
 
 def create_navigation():
     """Create navigation breadcrumbs and page selector"""

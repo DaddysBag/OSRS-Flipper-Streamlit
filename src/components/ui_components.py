@@ -66,26 +66,77 @@ def create_status_badge(status, size="normal"):
     """
 
 def create_metric_card(label, value, delta=None, icon="📊", color="#4A90E2"):
-    """Create enhanced metric cards using native Streamlit components"""
+    """Create enhanced metric cards with leak-proof HTML"""
 
-    # Use native Streamlit metric instead of custom HTML
+    # Determine delta color and clean text - NO HTML HERE
+    delta_color = "#32CD32"  # Default green
+    delta_text = ""
+
     if delta:
-        # Clean delta text
-        clean_delta = str(delta)
-        # Determine if it's positive or negative for Streamlit's delta color
-        delta_color = "normal" if any(word in clean_delta.lower() for word in ["fresh", "active", "ready", "optimized", "connected"]) else "inverse"
+        # Clean the delta text of any HTML/CSS
+        delta_text = str(delta).replace('<div', '').replace('</div>', '').replace('style=', '').replace('color:', '')
 
-        st.metric(
-            label=f"{icon} {label}",
-            value=value,
-            delta=clean_delta,
-            delta_color=delta_color
-        )
-    else:
-        st.metric(
-            label=f"{icon} {label}",
-            value=value
-        )
+        # Color logic based on content
+        if any(word in delta_text.lower() for word in ["fresh", "active", "ready", "optimized", "connected", "online"]):
+            delta_color = "#32CD32"  # Green
+        elif any(word in delta_text.lower() for word in ["stale", "disabled", "offline", "needs improvement"]):
+            delta_color = "#FF6B6B"  # Red
+        else:
+            delta_color = "#FFD700"  # Gold
+
+    # Build the HTML with all styling contained within - no external variables
+    card_html = f"""
+    <div style="
+        background: rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        padding: 24px;
+        margin: 16px 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: center;
+    ">
+        <div style="font-size: 1.5rem; margin-bottom: 12px;">{icon}</div>
+        <div style="
+            color: {color};
+            font-size: 1.875rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        ">
+            {value}
+        </div>
+        <div style="
+            color: #B0B8C5;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        ">
+            {label}
+        </div>"""
+
+    # Add delta if it exists - all styling contained here
+    if delta_text:
+        card_html += f"""
+        <div style="
+            color: {delta_color};
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-top: 8px;
+        ">
+            {delta_text}
+        </div>"""
+
+    card_html += "</div>"
+
+    # Render the complete HTML
+    st.markdown(card_html, unsafe_allow_html=True)
 
 def create_hero_section():
     """Create an engaging hero section"""
