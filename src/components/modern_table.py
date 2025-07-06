@@ -90,9 +90,9 @@ def prepare_table_data(df):
 def format_price(price):
     """Format prices for better readability"""
     if price >= 1_000_000:
-        return f"{price / 1_000_000:.1f}M"
+        return f"{price/1_000_000:.1f}M"
     elif price >= 1_000:
-        return f"{price / 1_000:.0f}K"
+        return f"{price/1_000:.0f}K"
     else:
         return f"{price:,.0f}"
 
@@ -216,7 +216,7 @@ def display_modern_table_cards(df):
 
 
 def create_item_card(row, idx):
-    """Create a modern card for each item"""
+    """Create a simple, leak-proof card for each item"""
 
     # Determine card accent color based on profit tier
     tier_colors = {
@@ -229,99 +229,57 @@ def create_item_card(row, idx):
 
     accent_color = tier_colors.get(row['Profit Tier'], "#4A90E2")
 
-    # Create the card
-    st.markdown(f"""
-    <div style="
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-left: 4px solid {accent_color};
-        border-radius: 12px;
-        padding: 20px;
-        margin: 12px 0;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    " onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateY(-2px)'"
-       onmouseout="this.style.background='rgba(255, 255, 255, 0.06)'; this.style.transform='translateY(0)'">
+    # Use Streamlit columns instead of complex HTML
+    with st.container():
+        st.markdown(f"""
+        <div style="
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-left: 4px solid {accent_color};
+            border-radius: 12px;
+            padding: 20px;
+            margin: 12px 0;
+        ">
+        """, unsafe_allow_html=True)
 
-        <!-- Header Row -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <h3 style="color: #FFD700; margin: 0; font-size: 1.1rem; font-weight: 600;">
-                    {row['Item']}
-                </h3>
-                <span style="
-                    background: rgba(255, 215, 0, 0.2);
-                    color: #FFD700;
-                    padding: 4px 8px;
-                    border-radius: 12px;
-                    font-size: 0.7rem;
-                    font-weight: 500;
-                ">
-                    {row['Profit Tier']}
-                </span>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <span style="font-size: 0.8rem;">{row['Risk Rating']}</span>
-                <span style="font-size: 0.8rem;">{row['Liquidity']}</span>
-            </div>
-        </div>
+        # Header row with item name and tier
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown(f"**🎯 {row['Item']}**")
+        with col2:
+            st.markdown(f"<span style='color: {accent_color}; font-size: 0.8rem;'>{row['Profit Tier']}</span>", unsafe_allow_html=True)
 
-        <!-- Main Info Row -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-            <div>
-                <div style="color: #B0B8C5; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Buy Price</div>
-                <div style="color: #32CD32; font-weight: 600; font-size: 1rem;">{row['Buy Price Formatted']}</div>
-            </div>
-            <div>
-                <div style="color: #B0B8C5; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Sell Price</div>
-                <div style="color: #FF6B6B; font-weight: 600; font-size: 1rem;">{row['Sell Price Formatted']}</div>
-            </div>
-            <div>
-                <div style="color: #B0B8C5; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Profit</div>
-                <div style="color: {accent_color}; font-weight: 700; font-size: 1.1rem;">{row['Margin Formatted']}</div>
-            </div>
-            <div>
-                <div style="color: #B0B8C5; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">ROI</div>
-                <div style="color: #4A90E2; font-weight: 600; font-size: 1rem;">{row['ROI (%)']:.1f}%</div>
-            </div>
-        </div>
+        # Main info row
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Buy", row['Buy Price Formatted'], delta=None)
+        with col2:
+            st.metric("Sell", row['Sell Price Formatted'], delta=None)
+        with col3:
+            st.metric("Profit", row['Margin Formatted'], delta=f"{row['ROI (%)']:.1f}%")
+        with col4:
+            st.metric("Volume", f"{row['1h Volume']:,}", delta=row['Risk Rating'])
 
-        <!-- Actions Row -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-            <div style="display: flex; gap: 10px; font-size: 0.8rem; color: #B0B8C5;">
-                <span>Vol: {row['1h Volume']:,}</span>
-                <span>•</span>
-                <span>Age: {row['Data Age (min)']:.0f}m</span>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button style="
-                    background: linear-gradient(135deg, #4A90E2, #357ABD);
-                    border: none;
-                    color: white;
-                    padding: 6px 12px;
-                    border-radius: 8px;
-                    font-size: 0.8rem;
-                    cursor: pointer;
-                    font-weight: 500;
-                " onclick="selectItemForChart('{row['Item']}')">
-                    📊 Chart
-                </button>
-                <button style="
-                    background: linear-gradient(135deg, #FFD700, #B8860B);
-                    border: none;
-                    color: #1A1A2E;
-                    padding: 6px 12px;
-                    border-radius: 8px;
-                    font-size: 0.8rem;
-                    cursor: pointer;
-                    font-weight: 500;
-                " onclick="addToWatchlist('{row['Item']}')">
-                    ⭐ Watch
-                </button>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        # Action buttons
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            if st.button(f"📊 Chart", key=f"chart_{idx}_{row['Item']}", help=f"View {row['Item']} chart"):
+                st.session_state['selected_item'] = row['Item']
+                st.session_state.page = 'charts'
+                st.rerun()
+        with col2:
+            if st.button(f"⭐ Watch", key=f"watch_{idx}_{row['Item']}", help=f"Add {row['Item']} to watchlist"):
+                if 'watchlist' not in st.session_state:
+                    st.session_state.watchlist = []
+                if row['Item'] not in st.session_state.watchlist:
+                    st.session_state.watchlist.append(row['Item'])
+                    st.success(f"Added {row['Item']} to watchlist!")
+        with col3:
+            st.write(f"Age: {row['Data Age (min)']:.0f}m")
+        with col4:
+            st.write(f"{row['Liquidity']}")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def create_modern_pagination(total_pages, total_items, start_idx, end_idx):
@@ -414,7 +372,7 @@ def inject_table_javascript():
         console.log('Chart requested for:', itemName);
         // You can add Streamlit callbacks here
     }
-
+    
     function addToWatchlist(itemName) {
         console.log('Add to watchlist:', itemName);
         // You can add Streamlit callbacks here
