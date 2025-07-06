@@ -365,12 +365,31 @@ def display_compact_table(df, start_idx):
     ">
     """, unsafe_allow_html=True)
 
-    # Enhanced data rows with better visual appeal
+    # Ultra-compact data rows with enhanced glassmorphism
     for idx, (_, row) in enumerate(df.iterrows()):
         item_key = f"{start_idx}_{idx}_{row['Item']}"
         is_expanded = item_key in st.session_state.expanded_items
 
-        create_enhanced_table_row(row, item_key, idx, is_expanded, start_idx)
+        # Determine profit-based styling
+        margin = row['Net Margin']
+        if margin >= 5000:
+            profit_class = "exceptional"
+            bg_color = "rgba(255, 215, 0, 0.08)"  # Gold
+            border_color = "rgba(255, 215, 0, 0.2)"
+        elif margin >= 2000:
+            profit_class = "excellent"
+            bg_color = "rgba(76, 175, 80, 0.06)"  # Green
+            border_color = "rgba(76, 175, 80, 0.15)"
+        elif margin >= 1000:
+            profit_class = "good"
+            bg_color = "rgba(33, 150, 243, 0.05)"  # Blue
+            border_color = "rgba(33, 150, 243, 0.12)"
+        else:
+            profit_class = "decent"
+            bg_color = "rgba(255, 255, 255, 0.02)"
+            border_color = "rgba(255, 255, 255, 0.05)"
+
+        create_ultra_compact_table_row(row, item_key, idx, is_expanded, start_idx, bg_color, border_color, margin)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -561,6 +580,141 @@ def create_enhanced_table_row(row, item_key, idx, is_expanded, start_idx):
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Show expanded details immediately without waiting for rerun
+    if is_expanded:
+        create_fast_row_expansion(row, item_key, start_idx)
+
+
+def create_ultra_compact_table_row(row, item_key, idx, is_expanded, start_idx, bg_color, border_color, margin):
+    """Create ultra-compact table row with glassmorphism effects"""
+
+    # Ultra-compact glassmorphism row container
+    st.markdown(f"""
+    <style>
+    .ultra-compact-row-{idx} {{
+        background: linear-gradient(135deg, {bg_color}, rgba(255, 255, 255, 0.02)) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 6px !important;
+        margin: 1px 0 !important;
+        padding: 3px 8px !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        min-height: 28px !important;
+        max-height: 28px !important;
+        display: flex !important;
+        align-items: center !important;
+    }}
+    .ultra-compact-row-{idx}:hover {{
+        background: linear-gradient(135deg, {bg_color}, rgba(255, 255, 255, 0.04)) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    }}
+    </style>
+    <div class="ultra-compact-row-{idx}">
+    """, unsafe_allow_html=True)
+
+    # Ultra-compact column layout
+    row_cols = st.columns([2.2, 1, 1, 1.6, 1.3, 1.1, 0.7, 0.6])
+
+    with row_cols[0]:  # Item name
+        st.markdown(f"""
+        <div style="
+            color: #FFD700; 
+            font-weight: 600; 
+            font-size: 0.85rem;
+            line-height: 1.1;
+            padding: 1px 0;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        ">{row['Item']}</div>
+        """, unsafe_allow_html=True)
+
+    with row_cols[1]:  # Buy price
+        st.markdown(f"""
+        <div style="
+            color: #4CAF50; 
+            font-weight: 500; 
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 1px 0;
+            line-height: 1.1;
+        ">{format_price(row['Buy Price'])}</div>
+        """, unsafe_allow_html=True)
+
+    with row_cols[2]:  # Sell price
+        st.markdown(f"""
+        <div style="
+            color: #FF6B6B; 
+            font-weight: 500; 
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 1px 0;
+            line-height: 1.1;
+        ">{format_price(row['Sell Price'])}</div>
+        """, unsafe_allow_html=True)
+
+    with row_cols[3]:  # Profit
+        profit_color = "#FFD700" if margin >= 5000 else "#4CAF50" if margin >= 1000 else "#FFA726"
+        st.markdown(f"""
+        <div style="
+            color: {profit_color}; 
+            font-weight: 600; 
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 1px 0;
+            line-height: 1.1;
+        ">{format_price(margin)} ({row['ROI (%)']:.1f}%)</div>
+        """, unsafe_allow_html=True)
+
+    with row_cols[4]:  # Volume
+        st.markdown(f"""
+        <div style="
+            color: #81C784; 
+            font-weight: 400; 
+            font-size: 0.75rem;
+            text-align: center;
+            padding: 1px 0;
+            line-height: 1.1;
+        ">{format_price(row['1h Volume'])}</div>
+        """, unsafe_allow_html=True)
+
+    with row_cols[5]:  # Risk
+        risk_rating = str(row.get('Risk Rating', 'N/A'))
+        risk_color = "#4CAF50" if "SAFE" in risk_rating else "#FFA726" if "MODERATE" in risk_rating else "#FF6B6B"
+        clean_risk = risk_rating.replace('🟢 ', '').replace('🟡 ', '').replace('🔴 ', '')
+        st.markdown(f"""
+        <div style="
+            color: {risk_color}; 
+            font-weight: 500; 
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 1px 0;
+            line-height: 1.1;
+        ">{clean_risk}</div>
+        """, unsafe_allow_html=True)
+
+    with row_cols[6]:  # Chart button
+        if st.button("📊", key=f"chart_ultra_{item_key}", help="View Chart",
+                     use_container_width=True):
+            st.session_state['selected_item'] = row['Item']
+            st.session_state.page = 'charts'
+            st.rerun()
+
+    with row_cols[7]:  # Expand button
+        expand_label = "▼" if is_expanded else "▶"
+        if st.button(expand_label, key=f"expand_ultra_{item_key}",
+                     help="Toggle Details", use_container_width=True):
+            if is_expanded:
+                st.session_state.expanded_items.discard(item_key)
+            else:
+                st.session_state.expanded_items.add(item_key)
+            st.rerun()
+
+    # Close the glassmorphism container
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Show expanded details if needed
     if is_expanded:
         create_fast_row_expansion(row, item_key, start_idx)
 
