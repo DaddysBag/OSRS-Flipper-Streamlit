@@ -366,25 +366,23 @@ def display_compact_table(df, start_idx):
 
 
 def create_professional_sort_controls():
-    """Create sorting controls for the professional table"""
+    """Create sorting controls matching Option 1 design"""
 
     st.markdown("""
     <div style="
-        background: rgba(255,255,255,0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin-bottom: 16px;
         display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
         align-items: center;
-        gap: 16px;
-        flex-wrap: wrap;
+        padding: 16px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
     ">
-        <span style="color: #ccc; font-weight: 600;">Sort by:</span>
+        <span style="color: #ccc; font-weight: 600; margin-right: 8px;">Sort by:</span>
     """, unsafe_allow_html=True)
 
-    # Create sorting buttons inline
+    # Create sorting buttons with Option 1 styling
     sort_cols = st.columns([1, 1, 1, 1, 1, 1, 1])
     sort_options = ['Item', 'Buy Price', 'Sell Price', 'Profit', 'ROI', 'Volume', 'Risk']
 
@@ -392,6 +390,28 @@ def create_professional_sort_controls():
         with sort_cols[i]:
             is_active = st.session_state.table_sort_column == option
             direction = '↓' if st.session_state.table_sort_direction == 'desc' else '↑'
+
+            # Apply Option 1 button styling
+            button_style = """
+            <style>
+            .sort-btn {
+                background: rgba(255,255,255,0.1) !important;
+                border: 1px solid rgba(255,255,255,0.2) !important;
+                border-radius: 6px !important;
+                color: white !important;
+                padding: 8px 16px !important;
+                font-size: 0.85rem !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+                width: 100% !important;
+            }
+            .sort-btn:hover, .sort-btn.active {
+                background: rgba(76,175,80,0.2) !important;
+                border-color: rgba(76,175,80,0.4) !important;
+            }
+            </style>
+            """
+            st.markdown(button_style, unsafe_allow_html=True)
 
             if st.button(
                     f"{option} {direction if is_active else ''}",
@@ -412,37 +432,46 @@ def create_professional_sort_controls():
 
 
 def create_professional_table_structure():
-    """Create the main table structure with glassmorphism"""
+    """Create the main table structure matching Option 1 design"""
 
     st.markdown("""
-    <div style="
-        background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    ">
-        <div style="overflow-x: auto;">
+    <style>
+    .professional-table-container {
+        background: rgba(0,0,0,0.3) !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        border-collapse: collapse !important;
+        width: 100% !important;
+        margin: 16px 0 !important;
+    }
+    .professional-table-container .stColumns {
+        background: transparent !important;
+    }
+    .professional-row:hover {
+        background: rgba(255,255,255,0.03) !important;
+        transition: all 0.2s ease !important;
+    }
+    </style>
+    <div class="professional-table-container">
     """, unsafe_allow_html=True)
 
 
 def create_professional_table_header():
-    """Create the professional table header"""
+    """Create the professional table header matching Option 1 design"""
 
-    # Header with glassmorphism effect
+    # Header with Option 1 styling
     st.markdown("""
     <div style="
         background: linear-gradient(135deg, rgba(76,175,80,0.2), rgba(76,175,80,0.1));
         border-bottom: 2px solid rgba(76,175,80,0.3);
-        padding: 14px 0;
+        padding: 12px 0;
         position: sticky;
         top: 0;
         z-index: 10;
     ">
     """, unsafe_allow_html=True)
 
-    # Header columns
+    # Header columns with Option 1 styling
     header_cols = st.columns([2.5, 1.2, 1.2, 1.8, 1.3, 1.2, 1.5])
     headers = ['🎯 Item', '💰 Buy Price', '💸 Sell Price', '📈 Profit (ROI%)', '📊 Volume', '⚖️ Risk', 'Actions']
 
@@ -451,12 +480,15 @@ def create_professional_table_header():
             st.markdown(f"""
             <div style="
                 color: #fff;
-                font-weight: 700;
+                font-weight: 600;
                 font-size: 0.95rem;
-                text-align: center;
-                padding: 0 8px;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            ">
+                text-align: left;
+                padding: 0 16px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " 
+            onmouseover="this.style.background='rgba(76,175,80,0.3)'"
+            onmouseout="this.style.background='transparent'">
                 {header}
             </div>
             """, unsafe_allow_html=True)
@@ -465,168 +497,193 @@ def create_professional_table_header():
 
 
 def create_professional_table_row(row, item_key, idx, is_expanded, start_idx):
-    """Create a professional table row with hover effects"""
+    """Create a professional table row matching Option 1 design"""
 
-    # Determine profit-based styling
+    # Determine profit-based styling for Option 1
     margin = row['Net Margin']
     if margin >= 5000:
-        row_bg = "rgba(255, 215, 0, 0.08)"  # Gold
         profit_color = "#FFD700"
         profit_class = "exceptional"
     elif margin >= 2000:
-        row_bg = "rgba(76, 175, 80, 0.06)"  # Green
         profit_color = "#4CAF50"
         profit_class = "excellent"
     elif margin >= 1000:
-        row_bg = "rgba(33, 150, 243, 0.05)"  # Blue
         profit_color = "#2196F3"
         profit_class = "good"
     else:
-        row_bg = "rgba(255, 255, 255, 0.02)"
         profit_color = "#FFA726"
         profit_class = "decent"
 
-    # Row container with hover effects
+    # Row container with Option 1 styling
     st.markdown(f"""
     <div style="
-        background: {row_bg};
+        background: transparent;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 16px 0;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
+        padding: 14px 0;
+        transition: all 0.2s ease;
     " 
-    onmouseover="
-        this.style.background='rgba(255, 255, 255, 0.08)';
-        this.style.transform='translateX(2px)';
-        this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)';
-    "
-    onmouseout="
-        this.style.background='{row_bg}';
-        this.style.transform='translateX(0)';
-        this.style.boxShadow='none';
-    "
+    onmouseover="this.style.background='rgba(255, 255, 255, 0.03)'"
+    onmouseout="this.style.background='transparent'"
     class="professional-row profit-{profit_class}">
     """, unsafe_allow_html=True)
 
-    # Table columns
+    # Table columns with Option 1 spacing
     row_cols = st.columns([2.5, 1.2, 1.2, 1.8, 1.3, 1.2, 1.5])
 
-    # Item name
+    # Item name - Option 1 styling
     with row_cols[0]:
         st.markdown(f"""
         <div style="
             color: #FFD700;
             font-weight: 600;
             font-size: 1rem;
-            padding: 0 12px;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
+            padding: 0 16px;
+            text-align: left;
         ">
             {row['Item']}
         </div>
         """, unsafe_allow_html=True)
 
-    # Buy price
+    # Buy price - Option 1 styling
     with row_cols[1]:
         st.markdown(f"""
         <div style="
             color: #4CAF50;
             font-weight: 500;
             font-size: 0.95rem;
-            text-align: center;
-            padding: 0 8px;
+            text-align: left;
+            padding: 0 16px;
         ">
             {format_price(row['Buy Price'])}
         </div>
         """, unsafe_allow_html=True)
 
-    # Sell price
+    # Sell price - Option 1 styling
     with row_cols[2]:
         st.markdown(f"""
         <div style="
             color: #FF6B6B;
             font-weight: 500;
             font-size: 0.95rem;
-            text-align: center;
-            padding: 0 8px;
+            text-align: left;
+            padding: 0 16px;
         ">
             {format_price(row['Sell Price'])}
         </div>
         """, unsafe_allow_html=True)
 
-    # Profit and ROI
+    # Profit and ROI - Option 1 styling
     with row_cols[3]:
         st.markdown(f"""
         <div style="
             color: {profit_color};
-            font-weight: 700;
+            font-weight: 600;
             font-size: 0.95rem;
-            text-align: center;
-            padding: 0 8px;
+            text-align: left;
+            padding: 0 16px;
         ">
             {format_price(margin)} ({row['ROI (%)']:.1f}%)
         </div>
         """, unsafe_allow_html=True)
 
-    # Volume
+    # Volume - Option 1 styling
     with row_cols[4]:
         st.markdown(f"""
         <div style="
             color: #81C784;
-            font-weight: 500;
-            font-size: 0.9rem;
-            text-align: center;
-            padding: 0 8px;
+            font-weight: 400;
+            font-size: 0.95rem;
+            text-align: left;
+            padding: 0 16px;
         ">
             {format_price(row['1h Volume'])}
         </div>
         """, unsafe_allow_html=True)
 
-    # Risk
+    # Risk - Option 1 badge styling
     with row_cols[5]:
         risk_rating = str(row.get('Risk Rating', 'N/A'))
         if "SAFE" in risk_rating:
-            risk_color = "#4CAF50"
-            risk_bg = "rgba(76, 175, 80, 0.2)"
+            badge_bg = "linear-gradient(135deg, #4CAF50, #388E3C)"
             risk_text = "SAFE"
         elif "HIGH RISK" in risk_rating:
-            risk_color = "#FF6B6B"
-            risk_bg = "rgba(244, 67, 54, 0.2)"
-            risk_text = "HIGH"
+            badge_bg = "linear-gradient(135deg, #FF6B6B, #E53935)"
+            risk_text = "HIGH RISK"
         else:
-            risk_color = "#FFA726"
-            risk_bg = "rgba(255, 152, 0, 0.2)"
-            risk_text = "MOD"
+            badge_bg = "linear-gradient(135deg, #FF9800, #F57C00)"
+            risk_text = "MODERATE"
 
         st.markdown(f"""
         <div style="
-            background: {risk_bg};
-            color: {risk_color};
+            background: {badge_bg};
+            color: white;
             font-weight: 600;
             font-size: 0.8rem;
             text-align: center;
-            padding: 6px 12px;
+            padding: 4px 8px;
             border-radius: 12px;
-            border: 1px solid {risk_color}40;
-            margin: 0 8px;
+            margin: 0 16px;
+            display: inline-block;
+            min-width: 60px;
         ">
             {risk_text}
         </div>
         """, unsafe_allow_html=True)
 
-    # Actions
+    # Actions - Option 1 button styling
     with row_cols[6]:
         action_cols = st.columns([1, 1])
 
         with action_cols[0]:
-            if st.button("📊", key=f"prof_chart_{item_key}", help="View Chart", use_container_width=True):
+            # Chart button with Option 1 styling
+            st.markdown("""
+            <style>
+            .chart-btn {
+                background: linear-gradient(135deg, #2196F3, #1976D2) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 6px !important;
+                padding: 6px 12px !important;
+                font-size: 0.85rem !important;
+                font-weight: 500 !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+            }
+            .chart-btn:hover {
+                background: linear-gradient(135deg, #1976D2, #1565C0) !important;
+                transform: translateY(-1px) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            if st.button("📊 Chart", key=f"prof_chart_{item_key}", help="View Chart", use_container_width=True):
                 st.session_state['selected_item'] = row['Item']
                 st.session_state.page = 'charts'
                 st.rerun()
 
         with action_cols[1]:
-            expand_label = "▲" if is_expanded else "▼"
+            # Expand button with Option 1 styling
+            st.markdown("""
+            <style>
+            .expand-btn {
+                background: linear-gradient(135deg, #9C27B0, #7B1FA2) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 6px !important;
+                padding: 6px 12px !important;
+                font-size: 0.85rem !important;
+                font-weight: 500 !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+            }
+            .expand-btn:hover {
+                background: linear-gradient(135deg, #7B1FA2, #6A1B9A) !important;
+                transform: translateY(-1px) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            expand_label = "📋 Details"
             if st.button(expand_label, key=f"prof_expand_{item_key}", help="Toggle Details", use_container_width=True):
                 if is_expanded:
                     st.session_state.expanded_items.discard(item_key)
