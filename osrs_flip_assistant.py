@@ -62,6 +62,7 @@ from src.components.sidebar import create_complete_sidebar
 from src.components.data_loader import load_flip_data, create_debug_section
 from src.components.results_table import display_paginated_table
 from src.components.modern_table import create_modern_results_table
+from src.components.performance_metrics import create_performance_badge_advanced
 
 # Load secrets from .streamlit/secrets.toml
 discord_webhook_url = st.secrets["discord"]["webhook_url"]
@@ -116,138 +117,9 @@ def export_to_sheets(df):
         print(f"❌ Sheets export failed: {e}")
 
 def show_opportunities_page():
-    """Complete, organized opportunities page using all components"""
-    global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
-
-    # Import all our organized components
-    from src.components.data_loader import load_flip_data, create_debug_section
-    from src.components.results_table import display_paginated_table
-    from src.components.tools import (
-        create_profit_calculator,
-        create_export_options,
-        create_watchlist_manager,
-        create_quick_chart_access
-    )
-    from src.components.alerts_metrics import (
-        create_performance_metrics,
-        create_alert_status_display,
-        display_watchlist_status,
-        create_market_insights
-    )
-
-    # Initialize default values
-    MIN_MARGIN = st.session_state.get('min_margin', 500)
-    MIN_VOLUME = st.session_state.get('min_volume', 500)
-    MIN_UTILITY = st.session_state.get('min_utility', 10000)
-
-    # Create sidebar with all filters and controls (with error handling)
-    try:
-        mode, MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all = create_complete_sidebar()
-    except Exception as e:
-        st.error(f"❌ Sidebar creation failed: {e}")
-        # Fallback values
-        mode = "Custom"
-        MIN_MARGIN = st.session_state.get('min_margin', 500)
-        MIN_VOLUME = st.session_state.get('min_volume', 500)
-        MIN_UTILITY = st.session_state.get('min_utility', 10000)
-        show_all = False
-
-    # Store values in session state
-    st.session_state['min_margin'] = MIN_MARGIN
-    st.session_state['min_volume'] = MIN_VOLUME
-    st.session_state['min_utility'] = MIN_UTILITY
-
-    # Load flip data
-    force_refresh = st.button("🔄 Refresh Data", type="primary")
-    df, name2id = load_flip_data(mode, force_refresh)
-
-    # Debug section
-    create_debug_section(MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all)
-
-    # Main content based on results
-    if not df.empty:
-        # === RESULTS SECTION ===
-
-        # Performance metrics at the top
-        create_performance_metrics(df)
-
-        # Main results table
-        display_paginated_table(df)
-
-        # === TOOLS SECTION ===
-        st.markdown("---")
-        st.header("🛠️ Trading Tools")
-
-        # Profit Calculator
-        create_profit_calculator()
-
-        # Export Options
-        create_export_options(df)
-
-        # === NAVIGATION SECTION ===
-        st.markdown("---")
-        st.header("🧭 Navigation & Charts")
-
-        # Quick Chart Access
-        create_quick_chart_access(df)
-
-        # === MANAGEMENT SECTION ===
-        st.markdown("---")
-        st.header("📋 Management")
-
-        # Watchlist Manager
-        create_watchlist_manager()
-
-        # Watchlist Status (if items exist)
-        display_watchlist_status(df)
-
-        # === STATUS SECTION ===
-        st.markdown("---")
-        st.header("📊 Status & Alerts")
-
-        # Alert Status
-        create_alert_status_display(df, show_all)
-
-        # Market Insights
-        create_market_insights(df)
-
-        # Mode-specific information
-        if mode == "High Volume":
-            st.info(f"🔥 **High Volume Mode**: Showing top {len(df)} highest traded items sorted by volume and profit")
-
-    else:
-        # === NO RESULTS SECTION ===
-        st.warning("⚠️ No flip opportunities found. Try adjusting your filters or enable 'Show All'.")
-
-        # Show helpful tips when no results
-        st.subheader("💡 Tips to Find More Opportunities")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info("""
-            **Adjust Your Filters:**
-            - Lower Min Margin (try 200-500 gp)
-            - Lower Min Volume (try 100-300)
-            - Lower Min Utility (try 1000-5000)
-            - Enable "Show All" to see everything
-            """)
-        with col2:
-            st.info("""
-            **Market Conditions:**
-            - Try different times of day
-            - Check if it's a weekend (lower volume)
-            - Consider seasonal effects
-            - Use "Low-Risk" mode for more results
-            """)
-
-        # Still show some tools even with no results
-        st.markdown("---")
-        st.header("🛠️ Tools Available")
-
-        # Profit Calculator (always useful)
-        create_profit_calculator()
-
-        # Watchlist Manager (if user has items)
-        create_watchlist_manager()
+    """Opportunities page - now handled by dedicated page controller"""
+    from src.pages.opportunities_page import show_opportunities_page as opportunities_controller
+    opportunities_controller()
 
 def show_charts_page():
     """Enhanced charts page with navigation and item analysis"""
@@ -1128,12 +1000,12 @@ def streamlit_dashboard():
     # Page content with dynamic titles
     if st.session_state.page == 'opportunities':
         create_enhanced_header()
-        create_performance_badge()
+        create_performance_badge_advanced()
         show_opportunities_page()
     elif st.session_state.page == 'charts':
         selected_item = st.session_state.get('selected_item', 'No Item Selected')
         create_enhanced_header()
-        create_performance_badge()
+        create_performance_badge_advanced()
         create_page_title('charts', selected_item)
         # Use the new dedicated charts page component
         from src.pages.charts_page import show_charts_page

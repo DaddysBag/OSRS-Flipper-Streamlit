@@ -11,64 +11,69 @@ from filters import run_flip_scanner
 
 def load_flip_data(mode, force_refresh=False):
     """
-    Load flip opportunity data with caching and progress indicators
-
-    Args:
-        mode: Trading mode (Custom, High-ROI, etc.)
-        force_refresh: Whether to force refresh the data
-
-    Returns:
-        tuple: (df, name2id) - DataFrame of opportunities and name to ID mapping
+    Load flip opportunity data with advanced caching and performance tracking
     """
+    from src.utils.cache_optimizer import get_cached_market_data, get_performance_stats
 
     # Initialize defaults
     df = pd.DataFrame()
     name2id = {}
 
-    # Handle forced refresh (button clicked)
+    # Handle forced refresh (bypass cache)
     if force_refresh:
-        with st.spinner("🔄 Processing data..."):
+        with st.spinner("🔄 Fetching fresh data..."):
+            # Clear cache and fetch new data
+            st.cache_data.clear()
+            from filters import run_flip_scanner
             df, name2id = run_flip_scanner(mode)
+
             if 'price_data' not in st.session_state:
+                from data_fetchers import get_real_time_prices
                 st.session_state.price_data = get_real_time_prices()
         return df, name2id
 
-    # Handle initial load
+    # Use cached data for better performance
     if 'initial_load_done' not in st.session_state:
         progress_bar = st.progress(0)
         status_text = st.empty()
 
         try:
             status_text.text("🚀 Starting OSRS Flip Assistant...")
-            progress_bar.progress(30)
+            progress_bar.progress(20)
 
-            status_text.text("💰 Fetching market data...")
-            progress_bar.progress(60)
+            status_text.text("📊 Loading cached market data...")
+            progress_bar.progress(40)
 
-            df, name2id = run_flip_scanner(mode)
+            # Use performance-optimized cached data
+            df, name2id = get_cached_market_data(mode)
+            progress_bar.progress(70)
+
+            status_text.text("⚡ Optimizing performance...")
             if 'price_data' not in st.session_state:
+                from data_fetchers import get_real_time_prices
                 st.session_state.price_data = get_real_time_prices()
+            progress_bar.progress(90)
 
+            # Show performance stats
+            perf_stats = get_performance_stats()
+            status_text.text(f"✅ Ready! (Cache hit rate: {perf_stats['hit_rate']:.1f}%)")
             progress_bar.progress(100)
-            status_text.text("✅ Ready!")
-            st.session_state.initial_load_done = True
 
-            # Clear progress after delay
-            import time
-            time.sleep(1)
+            time.sleep(0.5)  # Brief pause to show completion
             progress_bar.empty()
             status_text.empty()
+
+            st.session_state.initial_load_done = True
 
         except Exception as e:
             progress_bar.empty()
             status_text.empty()
-            st.error(f"❌ Error during initial load: {e}")
-            return df, name2id
+            st.error(f"❌ Data loading failed: {e}")
+            return pd.DataFrame(), {}
+
     else:
-        # Quick load for subsequent visits
-        df, name2id = run_flip_scanner(mode)
-        if 'price_data' not in st.session_state:
-            st.session_state.price_data = get_real_time_prices()
+        # Subsequent loads use cache
+        df, name2id = get_cached_market_data(mode)
 
     return df, name2id
 

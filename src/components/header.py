@@ -7,6 +7,7 @@ import streamlit as st
 import datetime
 from cache_manager import cache_manager
 from src.components.ui_components import create_hero_section, create_quick_stats_row, create_metric_card
+from src.components.performance_metrics import create_performance_dashboard, create_performance_badge_advanced
 
 def create_enhanced_header():
     """Create the modern enhanced header with OSRS theming"""
@@ -51,6 +52,9 @@ def create_enhanced_header():
         alert_delta = "Ready" if alert_value == "Active" else "System Disabled"
         create_metric_card("Alert System", alert_value, delta=alert_delta, icon="🔔",
                            color="#FFD700" if alert_value == "Active" else "#8A94A6")
+
+    # Add performance dashboard at the bottom of header
+    create_performance_dashboard()
 
 def create_navigation():
     """Create navigation breadcrumbs and page selector"""
