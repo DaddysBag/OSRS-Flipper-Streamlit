@@ -211,12 +211,24 @@ def run_flip_scanner(mode="Custom"):
 
 
 def show_opportunities_page():
-    """Clean, organized opportunities page using components"""
+    """Complete, organized opportunities page using all components"""
     global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
 
-    # Import the new components
+    # Import all our organized components
     from src.components.data_loader import load_flip_data, create_debug_section
     from src.components.results_table import display_paginated_table
+    from src.components.tools import (
+        create_profit_calculator,
+        create_export_options,
+        create_watchlist_manager,
+        create_quick_chart_access
+    )
+    from src.components.alerts_metrics import (
+        create_performance_metrics,
+        create_alert_status_display,
+        display_watchlist_status,
+        create_market_insights
+    )
 
     # Initialize default values
     MIN_MARGIN = st.session_state.get('min_margin', 500)
@@ -247,23 +259,59 @@ def show_opportunities_page():
     # Debug section
     create_debug_section(MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all)
 
-    # Display results
+    # Main content based on results
     if not df.empty:
+        # === RESULTS SECTION ===
+
+        # Performance metrics at the top
+        create_performance_metrics(df)
+
+        # Main results table
         display_paginated_table(df)
 
-        # Add your existing additional features here:
-        # - Profit calculator
-        # - Export options
-        # - Watchlist manager
-        # - Chart access
-        # - Alert status
-        # - Performance metrics
-
-        # For now, let's add a placeholder for your existing features
+        # === TOOLS SECTION ===
         st.markdown("---")
-        st.info("💡 Your existing features (profit calculator, exports, charts, etc.) will be added here next!")
+        st.header("🛠️ Trading Tools")
+
+        # Profit Calculator
+        create_profit_calculator()
+
+        # Export Options
+        create_export_options(df)
+
+        # === NAVIGATION SECTION ===
+        st.markdown("---")
+        st.header("🧭 Navigation & Charts")
+
+        # Quick Chart Access
+        create_quick_chart_access(df)
+
+        # === MANAGEMENT SECTION ===
+        st.markdown("---")
+        st.header("📋 Management")
+
+        # Watchlist Manager
+        create_watchlist_manager()
+
+        # Watchlist Status (if items exist)
+        display_watchlist_status(df)
+
+        # === STATUS SECTION ===
+        st.markdown("---")
+        st.header("📊 Status & Alerts")
+
+        # Alert Status
+        create_alert_status_display(df, show_all)
+
+        # Market Insights
+        create_market_insights(df)
+
+        # Mode-specific information
+        if mode == "High Volume":
+            st.info(f"🔥 **High Volume Mode**: Showing top {len(df)} highest traded items sorted by volume and profit")
 
     else:
+        # === NO RESULTS SECTION ===
         st.warning("⚠️ No flip opportunities found. Try adjusting your filters or enable 'Show All'.")
 
         # Show helpful tips when no results
@@ -285,6 +333,16 @@ def show_opportunities_page():
             - Consider seasonal effects
             - Use "Low-Risk" mode for more results
             """)
+
+        # Still show some tools even with no results
+        st.markdown("---")
+        st.header("🛠️ Tools Available")
+
+        # Profit Calculator (always useful)
+        create_profit_calculator()
+
+        # Watchlist Manager (if user has items)
+        create_watchlist_manager()
 
 
 def show_charts_page():
@@ -1062,6 +1120,21 @@ def show_warning_message(message, icon="⚠️"):
 
 # Streamlit UI
 def streamlit_dashboard():
+    # Add these new imports after your existing imports
+    from src.components.tools import (
+        create_profit_calculator,
+        create_export_options,
+        create_watchlist_manager,
+        create_quick_chart_access
+    )
+    from src.components.alerts_metrics import (
+        create_performance_metrics,
+        create_alert_status_display,
+        display_watchlist_status,
+        create_market_insights
+    )
+    from src.pages.charts_page import show_charts_page
+
     st.set_page_config(
         page_title="💸 OSRS GE Flipping Assistant",
         layout="wide",
@@ -1160,6 +1233,8 @@ def streamlit_dashboard():
         create_enhanced_header()
         create_performance_badge()
         create_page_title('charts', selected_item)
+        # Use the new dedicated charts page component
+        from src.pages.charts_page import show_charts_page
         show_charts_page()
 
 if __name__ == '__main__':
