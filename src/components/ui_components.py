@@ -138,53 +138,41 @@ def create_metric_card(label, value, delta=None, icon="📊", color="#4A90E2"):
     # Render the complete HTML
     st.markdown(card_html, unsafe_allow_html=True)
 
+
 def create_hero_section():
-    """Create an engaging hero section"""
+    """Create a compact hero header that doesn't waste space"""
 
     st.markdown("""
     <div style="
-        text-align: center;
-        padding: 40px 20px;
-        background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(74, 144, 226, 0.1) 100%);
-        border-radius: 20px;
-        margin: 20px 0;
-        border: 1px solid var(--border-accent);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.08), rgba(74, 144, 226, 0.08));
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 12px;
+        margin: 8px 0 16px 0;
     ">
-        <h1 style="
-            font-size: 3rem;
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, var(--osrs-gold), var(--osrs-blue-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        ">
-            💰 OSRS GE Flip Assistant
-        </h1>
-        <p style="
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            margin-bottom: 24px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        ">
-            Real-time Grand Exchange analysis with advanced risk assessment and profit optimization
-        </p>
-        <div style="
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        ">
-            <div class="osrs-card" style="display: inline-block; padding: 12px 20px;">
-                <span style="color: var(--osrs-green-light); font-weight: 600;">⚡ Live Data</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-size: 1.8rem;">💰</div>
+            <div>
+                <h1 style="
+                    color: #FFD700;
+                    margin: 0;
+                    font-size: 1.5rem;
+                    font-weight: 600;
+                ">OSRS GE Flip Assistant</h1>
+                <p style="
+                    color: #B0B8C5;
+                    margin: 0;
+                    font-size: 0.85rem;
+                ">Real-time Grand Exchange analysis</p>
             </div>
-            <div class="osrs-card" style="display: inline-block; padding: 12px 20px;">
-                <span style="color: var(--osrs-blue-light); font-weight: 600;">🛡️ Risk Analysis</span>
-            </div>
-            <div class="osrs-card" style="display: inline-block; padding: 12px 20px;">
-                <span style="color: var(--osrs-orange); font-weight: 600;">📊 Smart Filtering</span>
-            </div>
+        </div>
+        <div style="display: flex; gap: 16px; color: #B0B8C5; font-size: 0.8rem;">
+            <span>📊 Live Data</span>
+            <span>🛡️ Risk Analysis</span>
+            <span>🎯 Smart Filtering</span>
         </div>
     </div>
     """, unsafe_allow_html=True)

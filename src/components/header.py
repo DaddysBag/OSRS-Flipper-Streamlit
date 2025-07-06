@@ -23,7 +23,7 @@ def create_enhanced_header():
 
 
 def create_simple_status_indicators():
-    """Simple 2-column status instead of complex 4-column technical metrics"""
+    """Inline status indicators - no large cards"""
 
     # Calculate time since last update (keep existing logic)
     current_time = datetime.datetime.now()
@@ -33,44 +33,55 @@ def create_simple_status_indicators():
     time_diff = current_time - st.session_state.last_update_time
     minutes_ago = int(time_diff.total_seconds() / 60)
 
-    # Simple 2-column layout instead of complex 4-column
-    col1, col2 = st.columns(2)
+    # Determine status
+    if minutes_ago < 5:
+        data_status = "🟢 Data Fresh"
+        data_detail = "Recently updated"
+    elif minutes_ago < 15:
+        data_status = "🟡 Data Recent"
+        data_detail = f"Updated {minutes_ago}m ago"
+    else:
+        data_status = "🔴 Needs refresh"
+        data_detail = f"Last update: {minutes_ago}m ago"
 
-    with col1:
-        # Data freshness - users actually care about this
-        if minutes_ago < 5:
-            data_status = "🟢 Data Fresh"
-            data_delta = "Recently updated"
-        elif minutes_ago < 15:
-            data_status = "🟡 Data Recent"
-            data_delta = f"Updated {minutes_ago}m ago"
-        else:
-            data_status = "🔴 Needs refresh"
-            data_delta = f"Last update: {minutes_ago}m ago"
+    # System mode
+    alert_active = not st.session_state.get('show_all_table', False)
+    if alert_active:
+        system_status = "🔔 Alert Mode"
+        system_detail = "Monitoring opportunities"
+    else:
+        system_status = "📋 Browse Mode"
+        system_detail = "Showing all items"
 
-        # Use your existing create_metric_card function
-        create_metric_card("Data Status", data_status, delta=data_delta, icon="📊")
+        # Quick refresh button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🔄 Refresh Data", key="header_refresh", type="secondary"):
+                st.session_state.last_update_time = current_time
+                st.rerun()
 
-    with col2:
-        # System mode - simplified from alert system complexity
-        alert_active = not st.session_state.get('show_all_table', False)
-
-        if alert_active:
-            system_status = "🔔 Alert Mode"
-            system_delta = "Monitoring opportunities"
-        else:
-            system_status = "📋 Browse Mode"
-            system_delta = "Showing all items"
-
-        # Use your existing create_metric_card function
-        create_metric_card("System Mode", system_status, delta=system_delta, icon="⚙️")
-
-
-# KEEP ALL YOUR EXISTING FUNCTIONS UNCHANGED:
-# - create_navigation()
-# - create_page_title()
-# - create_performance_badge()
-# (Don't modify these - they work fine)
+    # Single compact status line
+    st.markdown(f"""
+    <div style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        margin: 8px 0;
+        font-size: 0.9rem;
+    ">
+        <div style="display: flex; gap: 24px;">
+            <span><strong>{data_status}</strong> <span style="color: #B0B8C5;">({data_detail})</span></span>
+            <span><strong>{system_status}</strong> <span style="color: #B0B8C5;">({system_detail})</span></span>
+        </div>
+        <div style="color: #B0B8C5; font-size: 0.8rem;">
+            Ready to find opportunities
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 def create_navigation():
     """Create navigation breadcrumbs and page selector"""
