@@ -114,102 +114,6 @@ def export_to_sheets(df):
     except Exception as e:
         print(f"❌ Sheets export failed: {e}")
 
-# Scanner
-def run_flip_scanner(mode="Custom"):
-    """Main scanner function with comprehensive error handling - FIXED VERSION"""
-    global show_all
-
-    try:
-        # Step 1: Get item mappings
-        print("=" * 50)
-        print("🚀 Starting OSRS Flip Scanner")
-        print("=" * 50)
-
-        id2name, name2id = get_item_mapping()
-        if not id2name or not name2id:
-            if 'st' in globals():
-                st.error("❌ Failed to load item mappings. Cannot proceed.")
-            return pd.DataFrame(), {}
-
-        # Step 2: Get price data
-        pd_data = get_real_time_prices()
-        if not pd_data:
-            if 'st' in globals():
-                st.error("❌ Failed to load price data. Cannot proceed.")
-            return pd.DataFrame(), name2id
-
-        # Step 3: Get hourly data (optional)
-        h_data = get_hourly_prices()
-
-        # Step 4: Filter items with mode parameter
-        df = filter_items(pd_data, h_data, id2name, show_all, mode)
-
-        if df.empty:
-            if 'st' in globals():
-                st.warning("⚠️ No items match your filter criteria. Try adjusting the filters or enable 'Show All'.")
-            return df, name2id
-
-        # Step 5: Limit results if not showing all
-        if not show_all:
-            df = df.head(50)
-
-        # Step 6: Send alerts for high-margin items (with strict conditions)
-        alert_count = 0
-
-        # Only send alerts if we have a reasonable number of results (not showing all items)
-        should_send_alerts = (
-            not show_all and  # Don't send alerts when "Show All" is enabled
-            len(df) <= 5 and  # Only send if 5 or fewer opportunities
-            len(df) > 0       # And we have at least one opportunity
-        )
-
-        if should_send_alerts:
-            # Only alert on truly exceptional opportunities (2x minimum margin)
-            high_value_items = df[df['Net Margin'] > MIN_MARGIN * 2]
-
-            for _, r in high_value_items.iterrows():
-                # Send alert and check if it was actually sent (not on cooldown)
-                alert_sent = send_discord_alert(r['Item'], r['Buy Price'], r['Sell Price'], r['Net Margin'])
-                if alert_sent:
-                    alert_count += 1
-
-                # Limit to max 3 alerts per refresh to prevent spam
-                if alert_count >= 3:
-                    break
-
-        if alert_count > 0:
-            print(f"📢 Sent {alert_count} Discord alerts")
-        elif should_send_alerts and len(df[df['Net Margin'] > MIN_MARGIN * 2]) > 0:
-            print(f"⏳ Discord alerts skipped - items on cooldown")
-        elif not should_send_alerts:
-            print(f"🚫 Discord alerts disabled - showing {len(df)} items (max 5 for alerts)")
-        else:
-            print(f"📊 No exceptional opportunities for Discord alerts")
-
-        # Step 7: Export data
-        try:
-            df.to_csv("flipping_report.csv", index=False)
-            print("✅ Saved CSV report")
-        except Exception as e:
-            print(f"❌ CSV export failed: {e}")
-
-        try:
-            export_to_sheets(df)
-            print("✅ Exported to Google Sheets")
-        except Exception as e:
-            print(f"❌ Sheets export failed: {e}")
-
-        print(f"✅ Scanner completed successfully. Found {len(df)} opportunities.")
-        return df, name2id
-
-    except Exception as e:
-        error_msg = f"❌ Scanner failed with error: {e}\n{traceback.format_exc()}"
-        print(error_msg)
-        if 'st' in globals():
-            st.error(error_msg)
-        return pd.DataFrame(), {}
-
-
 def show_opportunities_page():
     """Complete, organized opportunities page using all components"""
     global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
@@ -343,7 +247,6 @@ def show_opportunities_page():
 
         # Watchlist Manager (if user has items)
         create_watchlist_manager()
-
 
 def show_charts_page():
     """Enhanced charts page with navigation and item analysis"""
@@ -501,7 +404,6 @@ def show_charts_page():
         import traceback
         st.code(traceback.format_exc())
 
-
 def show_chart_analysis(ts, item_name, time_period):
     """Display analysis of the chart data"""
 
@@ -611,7 +513,6 @@ def show_chart_analysis(ts, item_name, time_period):
         else:
             recommendation = "🔴 High Risk"
         st.info(f"**Recommendation:** {recommendation}")
-
 
 def inject_custom_css():
     """Inject custom CSS for OSRS-themed dark UI"""

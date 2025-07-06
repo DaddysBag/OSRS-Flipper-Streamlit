@@ -175,6 +175,104 @@ def filter_items(price_data_result, hourly_data, id2name, show_all=False, mode="
 
     return df.sort_values('Risk Adjusted Utility', ascending=False)
 
+def run_flip_scanner(mode="Custom"):
+    """Main scanner function with comprehensive error handling"""
+    import streamlit as st
+    import pandas as pd
+    import traceback
+    from data_fetchers import get_item_mapping, get_real_time_prices, get_hourly_prices
+    from alerts import send_discord_alert
+
+    # Get show_all from session state instead of global
+    show_all = st.session_state.get('show_all_table', False)
+    MIN_MARGIN = st.session_state.get('min_margin', 500)
+
+    try:
+        # Step 1: Get item mappings
+        print("=" * 50)
+        print("🚀 Starting OSRS Flip Scanner")
+        print("=" * 50)
+
+        id2name, name2id = get_item_mapping()
+        if not id2name or not name2id:
+            st.error("❌ Failed to load item mappings. Cannot proceed.")
+            return pd.DataFrame(), {}
+
+        # Step 2: Get price data
+        pd_data = get_real_time_prices()
+        if not pd_data:
+            st.error("❌ Failed to load price data. Cannot proceed.")
+            return pd.DataFrame(), name2id
+
+        # Step 3: Get hourly data (optional)
+        h_data = get_hourly_prices()
+
+        # Step 4: Filter items with mode parameter
+        df = filter_items(pd_data, h_data, id2name, show_all, mode)
+
+        if df.empty:
+            st.warning("⚠️ No items match your filter criteria. Try adjusting the filters or enable 'Show All'.")
+            return df, name2id
+
+        # Step 5: Limit results if not showing all
+        if not show_all:
+            df = df.head(50)
+
+        # Step 6: Send alerts for high-margin items (with strict conditions)
+        alert_count = 0
+
+        # Only send alerts if we have a reasonable number of results (not showing all items)
+        should_send_alerts = (
+                not show_all and  # Don't send alerts when "Show All" is enabled
+                len(df) <= 5 and  # Only send if 5 or fewer opportunities
+                len(df) > 0  # And we have at least one opportunity
+        )
+
+        if should_send_alerts:
+            # Only alert on truly exceptional opportunities (2x minimum margin)
+            high_value_items = df[df['Net Margin'] > MIN_MARGIN * 2]
+
+            for _, r in high_value_items.iterrows():
+                # Send alert and check if it was actually sent (not on cooldown)
+                alert_sent = send_discord_alert(r['Item'], r['Buy Price'], r['Sell Price'], r['Net Margin'])
+                if alert_sent:
+                    alert_count += 1
+
+                # Limit to max 3 alerts per refresh to prevent spam
+                if alert_count >= 3:
+                    break
+
+        if alert_count > 0:
+            print(f"📢 Sent {alert_count} Discord alerts")
+        elif should_send_alerts and len(df[df['Net Margin'] > MIN_MARGIN * 2]) > 0:
+            print(f"⏳ Discord alerts skipped - items on cooldown")
+        elif not should_send_alerts:
+            print(f"🚫 Discord alerts disabled - showing {len(df)} items (max 5 for alerts)")
+        else:
+            print(f"📊 No exceptional opportunities for Discord alerts")
+
+        # Step 7: Export data
+        try:
+            df.to_csv("flipping_report.csv", index=False)
+            print("✅ Saved CSV report")
+        except Exception as e:
+            print(f"❌ CSV export failed: {e}")
+
+        # Google Sheets export (optional - you can comment this out if causing issues)
+        # try:
+        #     export_to_sheets(df)
+        #     print("✅ Exported to Google Sheets")
+        # except Exception as e:
+        #     print(f"❌ Sheets export failed: {e}")
+
+        print(f"✅ Scanner completed successfully. Found {len(df)} opportunities.")
+        return df, name2id
+
+    except Exception as e:
+        error_msg = f"❌ Scanner failed with error: {e}\n{traceback.format_exc()}"
+        print(error_msg)
+        st.error(error_msg)
+        return pd.DataFrame(), {}
 
 def backtest_filters(id2name, days=1):
     """Backtest filter conditions on historical data"""
@@ -209,7 +307,6 @@ def backtest_filters(id2name, days=1):
             print(f"Error in backtest for {name}: {e}")
             continue
     return pd.DataFrame(sigs)
-
 
 def compute_price_correlations(name2id, top_n=10, days=1):
     """Compute price correlations between items"""
