@@ -23,7 +23,7 @@ def create_enhanced_header():
 
 
 def create_simple_status_indicators():
-    """Reorganized status line with refresh button inline"""
+    """Clean status line without extra refresh button"""
 
     # Calculate time since last update (keep existing logic)
     current_time = datetime.datetime.now()
@@ -53,34 +53,26 @@ def create_simple_status_indicators():
         system_status = "📋 Browse Mode"
         system_detail = "Showing all items"
 
-    # Create reorganized layout: Status + Refresh button inline
-    col1, col2 = st.columns([4, 1])
-
-    with col1:
-        st.markdown(f"""
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 24px;
-            padding: 12px 20px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            font-size: 0.9rem;
-        ">
-            <span><strong>{data_status}</strong> <span style="color: #B0B8C5;">({data_detail})</span></span>
-            <span><strong>{system_status}</strong> <span style="color: #B0B8C5;">({system_detail})</span></span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        # Refresh button inline with status
-        if st.button("🔄 Refresh Data", key="header_refresh", type="secondary"):
-            st.session_state.last_update_time = current_time
-            st.rerun()
+    # Simple status line only (no extra refresh button)
+    st.markdown(f"""
+    <div style="
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        margin: 8px 0;
+    ">
+        <span><strong>{data_status}</strong> <span style="color: #B0B8C5;">({data_detail})</span></span>
+        <span><strong>{system_status}</strong> <span style="color: #B0B8C5;">({system_detail})</span></span>
+    </div>
+    """, unsafe_allow_html=True)
 
 def create_navigation():
-    """Create reorganized navigation with dropdown next to breadcrumb"""
+    """Create clean navigation layout"""
 
     # Navigation pages
     pages = {
@@ -91,11 +83,11 @@ def create_navigation():
     if 'page' not in st.session_state:
         st.session_state.page = 'opportunities'
 
-    # Reorganized navigation: Breadcrumb + Dropdown together
-    col1, col2, col3 = st.columns([2, 1, 2])
+    # Clean layout: Breadcrumb left, Page selector right
+    col1, col2 = st.columns([3, 1])
 
     with col1:
-        # Breadcrumb navigation
+        # Breadcrumb navigation (left side)
         if st.session_state.page == 'opportunities':
             st.markdown("📍 **Home** > Opportunities")
         elif st.session_state.page == 'charts':
@@ -103,7 +95,7 @@ def create_navigation():
             st.markdown(f"📍 **Home** > Opportunities > Charts > {selected_item}")
 
     with col2:
-        # Page selector moved next to breadcrumb
+        # Page selector (right-aligned)
         selected_page = st.selectbox(
             "Go to:",
             list(pages.keys()),
@@ -114,16 +106,6 @@ def create_navigation():
         if pages[selected_page] != st.session_state.page:
             st.session_state.page = pages[selected_page]
             st.rerun()
-
-    with col3:
-        # Quick actions (keep existing functionality)
-        if st.session_state.page == 'charts':
-            if st.button("⬅️ Back to Opportunities", type="secondary"):
-                st.session_state.page = 'opportunities'
-                st.rerun()
-        else:
-            # Show some useful info when on opportunities page
-            st.markdown('<div style="text-align: right; color: #B0B8C5; font-size: 0.9rem; padding: 8px 0;">Ready to find opportunities</div>', unsafe_allow_html=True)
 
 def create_page_title(page_name, item_name=None):
     """Create dynamic page titles based on current page"""

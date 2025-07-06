@@ -20,10 +20,9 @@ from src.components.tools import (
 
 
 def create_results_section(df):
-    """Create the main results section"""
-    st.markdown("## 📊 Trading Opportunities")
+    """Create the main results section without duplicate header"""
 
-    # Main results table
+    # Main results table (header is handled within the table component)
     display_paginated_table(df)
 
 
