@@ -140,6 +140,7 @@ def create_page_title(page_name, item_name=None):
         </h2>
         """, unsafe_allow_html=True)
 
+
 def create_performance_badge():
     """Create a performance monitoring badge"""
 
