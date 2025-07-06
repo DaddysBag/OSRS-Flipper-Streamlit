@@ -107,7 +107,7 @@ def format_price(price):
         return f"{price:,.0f}"
 
 
-def display_paginated_modern_table(df, items_per_page):
+def display_paginated_modern_table(df, default_items_per_page=20):
     """Display the modern table with pagination"""
 
     total_items = len(df)
@@ -116,15 +116,30 @@ def display_paginated_modern_table(df, items_per_page):
     if 'current_page' not in st.session_state:
         st.session_state.current_page = 0
 
+    # Table header with summary
+    create_modern_table_header(total_items, df)
+
+    # View options (now returns items_per_page from user selection)
+    search_term, sort_by, view_mode, items_per_page = create_view_options()
+
+    # Apply search filter if provided
+    if search_term:
+        df = df[df['Item'].str.contains(search_term, case=False, na=False)]
+        total_items = len(df)  # Update count after filtering
+
     total_pages = (total_items + items_per_page - 1) // items_per_page
     start_idx = st.session_state.current_page * items_per_page
     end_idx = min(start_idx + items_per_page, total_items)
 
-    # Table header with summary
-    create_modern_table_header(total_items, df)
+    # Reset page if we're beyond available pages after filtering
+    if st.session_state.current_page >= total_pages and total_pages > 0:
+        st.session_state.current_page = 0
+        start_idx = 0
+        end_idx = min(items_per_page, total_items)
 
-    # View options
-    create_view_options()
+        # Small visual separator
+        st.markdown("<div style='margin: 8px 0; border-top: 1px solid rgba(255,255,255,0.1);'></div>",
+                    unsafe_allow_html=True)
 
     # Main table
     current_page_items = df.iloc[start_idx:end_idx]
@@ -135,59 +150,80 @@ def display_paginated_modern_table(df, items_per_page):
 
 
 def create_modern_table_header(total_items, df):
-    """Create modern table header with key insights"""
+    """Create compact table header with essential info"""
 
-    st.markdown("""
+    # Compact single-line header with key stats
+    exceptional_count = len(df[df['Net Margin'] >= 5000])
+    safe_count = len(df[df['Risk Rating'] == "🟢 SAFE"]) if 'Risk Rating' in df.columns else 0
+    avg_margin = df['Net Margin'].mean()
+    high_liquidity = len(df[df['Liquidity'].str.contains("HIGH")]) if 'Liquidity' in df.columns else 0
+
+    st.markdown(f"""
     <div style="
-        background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(74, 144, 226, 0.1));
-        border: 1px solid rgba(255, 215, 0, 0.3);
-        border-radius: 16px;
-        padding: 20px;
-        margin: 20px 0;
-        text-align: center;
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.08), rgba(74, 144, 226, 0.08));
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 12px;
+        padding: 16px 24px;
+        margin: 16px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
     ">
-        <h2 style="color: #FFD700; margin-bottom: 10px;">🎯 Flip Opportunities</h2>
-        <p style="color: #B0B8C5; margin-bottom: 15px;">
-            Found <strong style="color: #FFD700;">{}</strong> profitable opportunities
-        </p>
+        <div style="color: #FFD700; font-weight: 600; font-size: 1.1rem;">
+            🎯 {total_items} Opportunities
+        </div>
+        <div style="display: flex; gap: 24px; color: #B0B8C5; font-size: 0.9rem;">
+            <span>🏆 {exceptional_count} Exceptional</span>
+            <span>🛡️ {safe_count} Safe</span>
+            <span>💰 {format_price(avg_margin)} Avg</span>
+            <span>🌊 {high_liquidity} High Vol</span>
+        </div>
     </div>
-    """.format(total_items), unsafe_allow_html=True)
-
-    # Quick insights
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        exceptional_count = len(df[df['Net Margin'] >= 5000])
-        st.metric("🏆 Exceptional", exceptional_count)
-
-    with col2:
-        safe_count = len(df[df['Risk Rating'] == "🟢 SAFE"])
-        st.metric("🛡️ Safe Trades", safe_count)
-
-    with col3:
-        avg_margin = df['Net Margin'].mean()
-        st.metric("💰 Avg Margin", format_price(avg_margin))
-
-    with col4:
-        high_liquidity = len(df[df['Liquidity'].str.contains("HIGH")])
-        st.metric("🌊 High Liquid", high_liquidity)
+    """, unsafe_allow_html=True)
 
 
 def create_view_options():
-    """Create view and sorting options"""
+    """Create compact view and sorting options"""
 
-    col1, col2, col3 = st.columns([2, 1, 1])
+    # Single row with all controls - more space efficient
+    col1, col2, col3, col4 = st.columns([3, 1.5, 1, 1])
 
     with col1:
-        search_term = st.text_input("🔍 Search items...", placeholder="Type item name", key="table_search")
+        search_term = st.text_input(
+            "🔍 Search items...",
+            placeholder="Type item name",
+            key="table_search",
+            label_visibility="collapsed"
+        )
 
     with col2:
-        sort_by = st.selectbox("Sort by", ["Profit Margin", "ROI %", "Volume", "Risk Level"], key="table_sort")
+        sort_by = st.selectbox(
+            "Sort by",
+            ["Profit Margin", "ROI %", "Volume", "Risk Level"],
+            key="table_sort",
+            label_visibility="collapsed"
+        )
 
     with col3:
-        view_mode = st.selectbox("View", ["Cards", "Compact"], key="table_view")
+        view_mode = st.selectbox(
+            "View",
+            ["Cards", "Compact"],
+            key="table_view",
+            label_visibility="collapsed"
+        )
 
-    return search_term, sort_by, view_mode
+    with col4:
+        # Add items per page selector for better control
+        items_per_page = st.selectbox(
+            "Per Page",
+            [10, 20, 30, 50],
+            index=1,  # Default to 20
+            key="items_per_page",
+            label_visibility="collapsed"
+        )
+
+    return search_term, sort_by, view_mode, items_per_page
 
 
 def display_modern_table_cards(df, start_idx):
