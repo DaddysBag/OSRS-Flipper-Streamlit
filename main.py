@@ -13,5 +13,5 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 # Import and run the main application
 if __name__ == "__main__":
-    from src.osrs_flip_assistant import streamlit_dashboard
+    from osrs_flip_assistant import streamlit_dashboard
     streamlit_dashboard()

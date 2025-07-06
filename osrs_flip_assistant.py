@@ -14,8 +14,11 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import traceback
 import os
+import sys
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'styles'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'components'))
 
 from data_fetchers import (
     get_item_mapping,
@@ -55,9 +58,10 @@ from alerts import (
     clear_alert_history
 )
 
-from styles.main_styles import inject_main_styles, inject_interactive_javascript
-from components.header import create_enhanced_header, create_navigation, create_page_title, create_performance_badge
-from components.sidebar import create_complete_sidebar
+
+from src.styles.main_styles import inject_main_styles, inject_interactive_javascript
+from src.components.header import create_enhanced_header, create_navigation, create_page_title, create_performance_badge
+from src.components.sidebar import create_complete_sidebar
 
 # Load secrets from .streamlit/secrets.toml
 discord_webhook_url = st.secrets["discord"]["webhook_url"]
@@ -300,10 +304,10 @@ def show_opportunities_page():
 
         if st.button("📁 Create Missing Files"):
             # Create ge_limits.json if it doesn't exist
-            if not os.path.exists('../ge_limits.json'):
+            if not os.path.exists('ge_limits.json'):
                 default_limits = get_buy_limits()  # This will return defaults
                 try:
-                    with open('../ge_limits.json', 'w') as f:
+                    with open('ge_limits.json', 'w') as f:
                         json.dump(default_limits, f, indent=2)
                     st.success("✅ Created ge_limits.json with default buy limits")
                 except Exception as e:
