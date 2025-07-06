@@ -312,7 +312,7 @@ def create_item_card(row, idx):
 
 
 def display_compact_table(df, start_idx):
-    """Display grid-based pseudo table with expandable rows"""
+    """Display enhanced grid-based pseudo table with better row definition"""
 
     st.markdown("### 📊 Trading Opportunities (Compact View)")
 
@@ -320,79 +320,295 @@ def display_compact_table(df, start_idx):
     if 'expanded_items' not in st.session_state:
         st.session_state.expanded_items = set()
 
-    # Header row
-    header_cols = st.columns([2, 1, 1, 1.5, 1.2, 1, 0.8, 0.6])
-    headers = ['🎯 Item', '💰 Buy', '💸 Sell', '📈 Profit', '📊 Volume', '⚖️ Risk', '📊 Chart', '📋 Expand']
+    # Enhanced sticky header with better styling
+    st.markdown("""
+    <div style="
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(74, 144, 226, 0.1));
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        border-radius: 8px 8px 0 0;
+        padding: 12px 0;
+        margin-bottom: 4px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+    ">
+    </div>
+    """, unsafe_allow_html=True)
 
-    for i, header in enumerate(headers):
-        with header_cols[i]:
-            st.markdown(f"**{header}**")
+    # Header row with better alignment
+    header_cols = st.columns([2.2, 1, 1, 1.6, 1.3, 1.1, 0.7, 0.6])
+    headers = ['🎯 Item', '💰 Buy', '💸 Sell', '📈 Profit', '📊 Volume', '⚖️ Risk', '📊', '📋']
 
-    st.markdown("---")
+    with st.container():
+        for i, header in enumerate(headers):
+            with header_cols[i]:
+                st.markdown(f"""
+                <div style="
+                    color: #FFD700; 
+                    font-weight: 700; 
+                    font-size: 0.85rem; 
+                    text-transform: uppercase;
+                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                    text-align: center;
+                    padding: 0 4px;
+                ">
+                    {header}
+                </div>
+                """, unsafe_allow_html=True)
 
-    # Data rows
+    # Container for scrollable rows
+    st.markdown("""
+    <div style="
+        max-height: 450px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0 0 8px 8px;
+        background: rgba(255, 255, 255, 0.02);
+    ">
+    """, unsafe_allow_html=True)
+
+    # Enhanced data rows with better definition
     for idx, (_, row) in enumerate(df.iterrows()):
         item_key = f"{start_idx}_{idx}_{row['Item']}"
         is_expanded = item_key in st.session_state.expanded_items
 
-        # Main row
-        cols = st.columns([2, 1, 1, 1.5, 1.2, 1, 0.8, 0.6])
+        # Determine profit-based styling
+        profit = row['Net Margin']
+        if profit >= 5000:
+            row_bg = "rgba(255, 215, 0, 0.08)"
+            border_left = "3px solid #FFD700"
+        elif profit >= 2000:
+            row_bg = "rgba(76, 175, 80, 0.06)"
+            border_left = "3px solid #4CAF50"
+        elif profit >= 1000:
+            row_bg = "rgba(74, 144, 226, 0.06)"
+            border_left = "3px solid #4A90E2"
+        else:
+            row_bg = "rgba(255, 255, 255, 0.03)" if idx % 2 == 0 else "rgba(255, 255, 255, 0.01)"
+            border_left = "3px solid rgba(255, 255, 255, 0.1)"
+
+        # Row container with defined borders
+        st.markdown(f"""
+        <div style="
+            background: {row_bg};
+            border-left: {border_left};
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin: 1px 0;
+            padding: 6px 8px;
+            transition: all 0.2s ease;
+        " class="table-row-{idx}">
+        """, unsafe_allow_html=True)
+
+        # Main row with tighter spacing
+        cols = st.columns([2.2, 1, 1, 1.6, 1.3, 1.1, 0.7, 0.6])
 
         with cols[0]:
-            st.write(f"**{row['Item']}**")
+            st.markdown(f"""
+            <div style="
+                font-weight: 600; 
+                color: #FFFFFF; 
+                font-size: 0.9rem;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                padding: 2px 0;
+            ">
+                {row['Item']}
+            </div>
+            """, unsafe_allow_html=True)
+
         with cols[1]:
-            st.write(row['Buy Price Formatted'])
+            st.markdown(f"""
+            <div style="
+                color: #E0E0E0; 
+                font-size: 0.85rem;
+                text-align: center;
+                padding: 2px 0;
+            ">
+                {row['Buy Price Formatted']}
+            </div>
+            """, unsafe_allow_html=True)
+
         with cols[2]:
-            st.write(row['Sell Price Formatted'])
+            st.markdown(f"""
+            <div style="
+                color: #E0E0E0; 
+                font-size: 0.85rem;
+                text-align: center;
+                padding: 2px 0;
+            ">
+                {row['Sell Price Formatted']}
+            </div>
+            """, unsafe_allow_html=True)
+
         with cols[3]:
-            st.write(f"**{row['Margin Formatted']}** ({row['ROI (%)']:.1f}%)")
+            st.markdown(f"""
+            <div style="
+                color: #FFD700; 
+                font-weight: 700; 
+                font-size: 0.85rem;
+                text-align: center;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                padding: 2px 0;
+            ">
+                {row['Margin Formatted']} ({row['ROI (%)']:.1f}%)
+            </div>
+            """, unsafe_allow_html=True)
+
         with cols[4]:
-            st.write(f"{row['1h Volume']:,}")
+            st.markdown(f"""
+            <div style="
+                color: #74C0FC; 
+                font-weight: 600; 
+                font-size: 0.8rem;
+                font-family: 'JetBrains Mono', monospace;
+                text-align: center;
+                padding: 2px 0;
+            ">
+                {row['1h Volume']:,}
+            </div>
+            """, unsafe_allow_html=True)
+
         with cols[5]:
-            if "SAFE" in row['Risk Rating']:
-                st.markdown(f'<span style="color: #4CAF50; font-weight: 600;">{row["Risk Rating"]}</span>',
-                            unsafe_allow_html=True)
-            elif "HIGH RISK" in row['Risk Rating']:
-                st.markdown(f'<span style="color: #FF6B6B; font-weight: 600;">{row["Risk Rating"]}</span>',
-                            unsafe_allow_html=True)
+            # Enhanced risk indicator
+            risk = row['Risk Rating']
+            if "SAFE" in risk:
+                risk_color = "#4CAF50"
+                risk_bg = "rgba(76, 175, 80, 0.15)"
+            elif "HIGH RISK" in risk:
+                risk_color = "#FF6B6B"
+                risk_bg = "rgba(244, 67, 54, 0.15)"
             else:
-                st.markdown(f'<span style="color: #FFC107; font-weight: 600;">{row["Risk Rating"]}</span>',
-                            unsafe_allow_html=True)
+                risk_color = "#FFC107"
+                risk_bg = "rgba(255, 193, 7, 0.15)"
+
+            st.markdown(f"""
+            <div style="
+                color: {risk_color}; 
+                background: {risk_bg};
+                font-weight: 600; 
+                font-size: 0.75rem;
+                text-align: center;
+                border-radius: 4px;
+                padding: 2px 4px;
+                margin: 2px;
+            ">
+                {risk.replace('🟢 ', '').replace('🔴 ', '').replace('🟡 ', '')}
+            </div>
+            """, unsafe_allow_html=True)
+
         with cols[6]:
-            if st.button("📊", key=f"chart_{item_key}", help=f"Chart {row['Item']}"):
+            # Compact chart button
+            if st.button("📊",
+                         key=f"chart_{item_key}",
+                         help=f"Chart {row['Item']}",
+                         use_container_width=True):
                 st.session_state['selected_item'] = row['Item']
                 st.session_state.page = 'charts'
                 st.rerun()
+
         with cols[7]:
-            expand_text = "📋" if not is_expanded else "📋"
-            if st.button(expand_text, key=f"expand_{item_key}", help="Toggle details"):
+            # Compact expand button
+            expand_icon = "▼" if not is_expanded else "▲"
+            if st.button(expand_icon,
+                         key=f"expand_{item_key}",
+                         help="Toggle details",
+                         use_container_width=True):
                 if item_key in st.session_state.expanded_items:
                     st.session_state.expanded_items.remove(item_key)
                 else:
                     st.session_state.expanded_items.add(item_key)
                 st.rerun()
 
-        # Expanded details
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Enhanced expanded details with better styling
         if is_expanded:
-            with st.container():
-                st.markdown(f"""
-                <div style="background: rgba(255, 215, 0, 0.08); border: 1px solid rgba(255, 215, 0, 0.2); 
-                           border-radius: 8px; padding: 16px; margin: 8px 0;">
-                    <h4 style="color: #FFD700; margin-bottom: 12px;">🔍 {row['Item']} - Detailed Analysis</h4>
-                </div>
-                """, unsafe_allow_html=True)
+            create_enhanced_row_expansion(row, item_key, start_idx)
 
-                detail_cols = st.columns(4)
-                with detail_cols[0]:
-                    st.metric("Buy Price", f"{row['Buy Price']:,} gp")
-                with detail_cols[1]:
-                    st.metric("Sell Price", f"{row['Sell Price']:,} gp")
-                with detail_cols[2]:
-                    st.metric("Net Profit", f"{row['Net Margin']:,} gp")
-                with detail_cols[3]:
-                    st.metric("ROI", f"{row['ROI (%)']:.1f}%")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("---")
+
+def create_enhanced_row_expansion(row, item_key, start_idx):
+    """Create enhanced expanded row details"""
+
+    # Determine expansion styling based on profit
+    profit = row['Net Margin']
+    if profit >= 5000:
+        expansion_bg = "linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(255, 215, 0, 0.04))"
+        border_color = "#FFD700"
+    elif profit >= 2000:
+        expansion_bg = "linear-gradient(135deg, rgba(76, 175, 80, 0.12), rgba(76, 175, 80, 0.04))"
+        border_color = "#4CAF50"
+    elif profit >= 1000:
+        expansion_bg = "linear-gradient(135deg, rgba(74, 144, 226, 0.12), rgba(74, 144, 226, 0.04))"
+        border_color = "#4A90E2"
+    else:
+        expansion_bg = "rgba(255, 255, 255, 0.05)"
+        border_color = "rgba(255, 255, 255, 0.15)"
+
+    st.markdown(f"""
+    <div style="
+        background: {expansion_bg};
+        border: 1px solid {border_color};
+        border-radius: 8px;
+        margin: 8px 16px 12px 16px;
+        padding: 16px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    ">
+        <h4 style="color: #FFD700; margin: 0 0 12px 0; font-size: 0.95rem; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">
+            🔍 {row['Item']} - Detailed Analysis
+        </h4>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Compact metrics grid
+    metric_cols = st.columns(4)
+    with metric_cols[0]:
+        st.metric("Buy Price", f"{row['Buy Price']:,} gp", label_visibility="visible")
+    with metric_cols[1]:
+        st.metric("Sell Price", f"{row['Sell Price']:,} gp", label_visibility="visible")
+    with metric_cols[2]:
+        st.metric("Net Profit", f"{row['Net Margin']:,} gp", label_visibility="visible")
+    with metric_cols[3]:
+        st.metric("ROI", f"{row['ROI (%)']:.1f}%", label_visibility="visible")
+
+    # Additional compact details
+    if any(col in row for col in ['Data Age (min)', 'Manipulation Score', 'Volatility Score', 'Utility']):
+        detail_cols = st.columns(2)
+
+        with detail_cols[0]:
+            if 'Data Age (min)' in row:
+                st.write(f"⏰ **Data Age:** {row['Data Age (min)']:.0f} minutes")
+            if 'Manipulation Score' in row:
+                st.write(f"🔬 **Manipulation:** {row['Manipulation Score']}/10")
+
+        with detail_cols[1]:
+            if 'Volatility Score' in row:
+                st.write(f"📊 **Volatility:** {row['Volatility Score']}/10")
+            if 'Utility' in row:
+                st.write(f"⚡ **Utility:** {row['Utility']:,.0f}")
+
+    # Compact action buttons
+    action_cols = st.columns(3)
+    with action_cols[0]:
+        if st.button("📊 View Chart", key=f"detail_chart_{item_key}", type="primary"):
+            st.session_state['selected_item'] = row['Item']
+            st.session_state.page = 'charts'
+            st.rerun()
+
+    with action_cols[1]:
+        if st.button("⭐ Watchlist", key=f"detail_watch_{item_key}"):
+            if 'watchlist' not in st.session_state:
+                st.session_state.watchlist = []
+            if row['Item'] not in st.session_state.watchlist:
+                st.session_state.watchlist.append(row['Item'])
+                st.success(f"Added {row['Item']} to watchlist!")
+
+    with action_cols[2]:
+        copy_text = f"{row['Item']}: {row['Buy Price']:,} → {row['Sell Price']:,} = {row['Net Margin']:,} gp ({row['ROI (%)']:.1f}%)"
+        if st.button("📋 Copy", key=f"detail_copy_{item_key}"):
+            st.info(f"📋 `{copy_text}`")
 
 
 def get_profit_tier_class(margin):
