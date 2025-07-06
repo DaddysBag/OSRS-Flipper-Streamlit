@@ -59,21 +59,115 @@ def create_simple_status_indicators():
     with col1:
         # Status indicators with minimal padding
         st.markdown(f"""
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 4px 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 6px;
-            font-size: 0.85rem;
-            margin: 2px 0;
-        ">
-            <span><strong>{data_status}</strong> <span style="color: #B0B8C5;">({data_detail})</span></span>
-            <span><strong>{system_status}</strong> <span style="color: #B0B8C5;">({system_detail})</span></span>
-        </div>
-        """, unsafe_allow_html=True)
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 24px;
+                    padding: 12px 20px;
+                    background: linear-gradient(135deg, 
+                        rgba(255, 255, 255, 0.08), 
+                        rgba(255, 215, 0, 0.04),
+                        rgba(74, 144, 226, 0.03)
+                    );
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 215, 0, 0.15);
+                    border-radius: 16px;
+                    font-size: 0.9rem;
+                    margin: 8px 0;
+                    box-shadow: 
+                        0 8px 32px rgba(0, 0, 0, 0.3),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                        0 1px 3px rgba(255, 215, 0, 0.1);
+                    position: relative;
+                    overflow: hidden;
+                ">
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 1px;
+                        background: linear-gradient(90deg, 
+                            transparent, 
+                            rgba(255, 215, 0, 0.4), 
+                            transparent
+                        );
+                    "></div>
+
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        position: relative;
+                    ">
+                        <div class="status-pulse" style="
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 50%;
+                            background: {get_status_color(data_status)};
+                            box-shadow: 0 0 8px {get_status_color(data_status)};
+                            animation: pulse 2s infinite;
+                        "></div>
+                        <span style="
+                            font-weight: 600;
+                            color: #FFFFFF;
+                            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                        ">{data_status}</span>
+                        <span style="
+                            color: rgba(176, 184, 197, 0.9);
+                            font-size: 0.85rem;
+                        ">({data_detail})</span>
+                    </div>
+
+                    <div style="
+                        width: 1px;
+                        height: 20px;
+                        background: linear-gradient(180deg, 
+                            transparent, 
+                            rgba(255, 255, 255, 0.1), 
+                            transparent
+                        );
+                    "></div>
+
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        position: relative;
+                    ">
+                        <div style="
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 50%;
+                            background: {get_system_status_color(system_status)};
+                            box-shadow: 0 0 8px {get_system_status_color(system_status)};
+                        "></div>
+                        <span style="
+                            font-weight: 600;
+                            color: #FFFFFF;
+                            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                        ">{system_status}</span>
+                        <span style="
+                            color: rgba(176, 184, 197, 0.9);
+                            font-size: 0.85rem;
+                        ">({system_detail})</span>
+                    </div>
+                </div>
+
+                <style>
+                @keyframes pulse {{
+                    0%, 100% {{ 
+                        opacity: 1; 
+                        transform: scale(1); 
+                    }}
+                    50% {{ 
+                        opacity: 0.7; 
+                        transform: scale(1.1); 
+                    }}
+                }}
+                </style>
+                """, unsafe_allow_html=True)
 
     with col2:
         # Refresh button with minimal styling
@@ -81,6 +175,22 @@ def create_simple_status_indicators():
             st.session_state.last_update_time = current_time
             st.session_state['force_data_refresh'] = True
             st.rerun()
+
+def get_status_color(status):
+    """Get color for data status indicator"""
+    if "🟢" in status:
+        return "#4CAF50"
+    elif "🟡" in status:
+        return "#FFC107"
+    else:
+        return "#F44336"
+
+def get_system_status_color(status):
+    """Get color for system status indicator"""
+    if "🔔" in status:
+        return "#FF9800"
+    else:
+        return "#74C0FC"
 
 def create_navigation():
     """Create clean navigation layout"""
