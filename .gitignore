@@ -6,6 +6,10 @@ __pycache__/
 google_credentials.json
 .streamlit/secrets.toml
 
+#MDs
+project_context_guide.md
+ai_collaboration_guide.md
+
 # Build artifacts
 dist/
 build/
