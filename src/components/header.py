@@ -62,13 +62,13 @@ def create_simple_status_indicators():
         <div style="
             display: flex;
             align-items: center;
-            gap: 20px;
-            padding: 8px 16px;
+            gap: 16px;
+            padding: 4px 12px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             font-size: 0.85rem;
-            margin: 4px 0;
+            margin: 2px 0;
         ">
             <span><strong>{data_status}</strong> <span style="color: #B0B8C5;">({data_detail})</span></span>
             <span><strong>{system_status}</strong> <span style="color: #B0B8C5;">({system_detail})</span></span>
@@ -77,7 +77,7 @@ def create_simple_status_indicators():
 
     with col2:
         # Refresh button with minimal styling
-        if st.button("🔄 Refresh Data", key="header_refresh", type="secondary"):
+        if st.button("🔄 Refresh", key="header_refresh", type="secondary"):
             st.session_state.last_update_time = current_time
             st.session_state['force_data_refresh'] = True
             st.rerun()
