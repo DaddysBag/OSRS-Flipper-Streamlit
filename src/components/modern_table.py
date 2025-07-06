@@ -312,397 +312,267 @@ def create_item_card(row, idx):
 
 
 def display_compact_table(df, start_idx):
-    """Display enhanced professional table with sorting and better UX"""
+    """Display professional table exactly matching the reference design"""
 
-    # Initialize sort and expansion state
-    if 'table_sort_column' not in st.session_state:
-        st.session_state.table_sort_column = 'Net Margin'
-    if 'table_sort_direction' not in st.session_state:
-        st.session_state.table_sort_direction = 'desc'
+    # Initialize expansion state
     if 'expanded_items' not in st.session_state:
         st.session_state.expanded_items = set()
 
-    # Apply sorting
-    sort_column = st.session_state.table_sort_column
-    ascending = st.session_state.table_sort_direction == 'asc'
-
-    # Map display names to column names
-    sort_mapping = {
-        'Item': 'Item',
-        'Buy Price': 'Buy Price',
-        'Sell Price': 'Sell Price',
-        'Profit': 'Net Margin',
-        'ROI': 'ROI (%)',
-        'Volume': '1h Volume',
-        'Risk': 'Risk Rating'
-    }
-
-    if sort_column in sort_mapping:
-        try:
-            df = df.sort_values(sort_mapping[sort_column], ascending=ascending)
-        except:
-            pass  # Fallback if sorting fails
-
-    # Enhanced professional table header
+    # Remove the sorting buttons section entirely and create clean professional table
     st.markdown("### 📊 Trading Opportunities (Professional View)")
 
-    # Sort controls
-    create_professional_sort_controls()
-
-    # Professional table with glassmorphism
-    create_professional_table_structure()
-
-    # Table header
-    create_professional_table_header()
-
-    # Table rows
-    for idx, (_, row) in enumerate(df.iterrows()):
-        item_key = f"{start_idx}_{idx}_{row['Item']}"
-        is_expanded = item_key in st.session_state.expanded_items
-        create_professional_table_row(row, item_key, idx, is_expanded, start_idx)
-
-    # Close table structure
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-
-def create_professional_sort_controls():
-    """Create sorting controls matching Option 1 design"""
-
-    st.markdown("""
-    <div style="
-        display: flex;
-        gap: 12px;
-        margin-bottom: 20px;
-        align-items: center;
-        padding: 16px;
-        background: rgba(255,255,255,0.05);
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.1);
-    ">
-        <span style="color: #ccc; font-weight: 600; margin-right: 8px;">Sort by:</span>
-    """, unsafe_allow_html=True)
-
-    # Create sorting buttons with Option 1 styling
-    sort_cols = st.columns([1, 1, 1, 1, 1, 1, 1])
-    sort_options = ['Item', 'Buy Price', 'Sell Price', 'Profit', 'ROI', 'Volume', 'Risk']
-
-    for i, option in enumerate(sort_options):
-        with sort_cols[i]:
-            is_active = st.session_state.table_sort_column == option
-            direction = '↓' if st.session_state.table_sort_direction == 'desc' else '↑'
-
-            # Apply Option 1 button styling
-            button_style = """
-            <style>
-            .sort-btn {
-                background: rgba(255,255,255,0.1) !important;
-                border: 1px solid rgba(255,255,255,0.2) !important;
-                border-radius: 6px !important;
-                color: white !important;
-                padding: 8px 16px !important;
-                font-size: 0.85rem !important;
-                cursor: pointer !important;
-                transition: all 0.2s ease !important;
-                width: 100% !important;
-            }
-            .sort-btn:hover, .sort-btn.active {
-                background: rgba(76,175,80,0.2) !important;
-                border-color: rgba(76,175,80,0.4) !important;
-            }
-            </style>
-            """
-            st.markdown(button_style, unsafe_allow_html=True)
-
-            if st.button(
-                    f"{option} {direction if is_active else ''}",
-                    key=f"sort_{option}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary"
-            ):
-                if st.session_state.table_sort_column == option:
-                    # Toggle direction
-                    st.session_state.table_sort_direction = 'asc' if st.session_state.table_sort_direction == 'desc' else 'desc'
-                else:
-                    # New column, default to desc for profit-related, asc for others
-                    st.session_state.table_sort_column = option
-                    st.session_state.table_sort_direction = 'desc' if option in ['Profit', 'ROI', 'Volume'] else 'asc'
-                st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def create_professional_table_structure():
-    """Create the main table structure matching Option 1 design"""
-
+    # Create the professional table structure
     st.markdown("""
     <style>
-    .professional-table-container {
-        background: rgba(0,0,0,0.3) !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        border-collapse: collapse !important;
-        width: 100% !important;
-        margin: 16px 0 !important;
+    .professional-table {
+        background: rgba(0,0,0,0.4);
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 16px 0;
+        border: 1px solid rgba(255,255,255,0.1);
     }
-    .professional-table-container .stColumns {
-        background: transparent !important;
+    .table-header {
+        background: linear-gradient(135deg, rgba(76,175,80,0.25), rgba(76,175,80,0.15));
+        border-bottom: 2px solid rgba(76,175,80,0.4);
+        padding: 14px 0;
     }
-    .professional-row:hover {
-        background: rgba(255,255,255,0.03) !important;
-        transition: all 0.2s ease !important;
+    .table-row {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 14px 0;
+        transition: all 0.2s ease;
+    }
+    .table-row:hover {
+        background: rgba(255,255,255,0.03);
+    }
+    .item-name {
+        color: #FFD700;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    .buy-price {
+        color: #4CAF50;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    .sell-price {
+        color: #FF6B6B;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    .profit-high {
+        color: #FFD700;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    .profit-good {
+        color: #4CAF50;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    .profit-ok {
+        color: #FFA726;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    .volume {
+        color: #81C784;
+        font-weight: 400;
+        font-size: 0.95rem;
+    }
+    .risk-badge {
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 60px;
+        text-align: center;
+    }
+    .risk-safe {
+        background: linear-gradient(135deg, #4CAF50, #388E3C);
+        color: white;
+    }
+    .risk-moderate {
+        background: linear-gradient(135deg, #2196F3, #1976D2);
+        color: white;
+    }
+    .risk-high {
+        background: linear-gradient(135deg, #FF6B6B, #E53935);
+        color: white;
+    }
+    .action-button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin: 0 4px;
+    }
+    .chart-button {
+        background: linear-gradient(135deg, #2196F3, #1976D2);
+        color: white;
+    }
+    .chart-button:hover {
+        background: linear-gradient(135deg, #1976D2, #1565C0);
+        transform: translateY(-1px);
+    }
+    .details-button {
+        background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+        color: white;
+    }
+    .details-button:hover {
+        background: linear-gradient(135deg, #7B1FA2, #6A1B9A);
+        transform: translateY(-1px);
     }
     </style>
-    <div class="professional-table-container">
+
+    <div class="professional-table">
     """, unsafe_allow_html=True)
 
+    # Create table header
+    st.markdown('<div class="table-header">', unsafe_allow_html=True)
+    header_cols = st.columns([2.5, 1.3, 1.3, 1.8, 1.3, 1.2, 1.6])
+    headers = [
+        ('🎯 Item', '#fff'),
+        ('💰 Buy Price', '#fff'),
+        ('💸 Sell Price', '#fff'),
+        ('📈 Profit (ROI%)', '#fff'),
+        ('📊 Volume', '#fff'),
+        ('⚖️ Risk', '#fff'),
+        ('Actions', '#fff')
+    ]
 
-def create_professional_table_header():
-    """Create the professional table header matching Option 1 design"""
-
-    # Header with Option 1 styling
-    st.markdown("""
-    <div style="
-        background: linear-gradient(135deg, rgba(76,175,80,0.2), rgba(76,175,80,0.1));
-        border-bottom: 2px solid rgba(76,175,80,0.3);
-        padding: 12px 0;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    ">
-    """, unsafe_allow_html=True)
-
-    # Header columns with Option 1 styling
-    header_cols = st.columns([2.5, 1.2, 1.2, 1.8, 1.3, 1.2, 1.5])
-    headers = ['🎯 Item', '💰 Buy Price', '💸 Sell Price', '📈 Profit (ROI%)', '📊 Volume', '⚖️ Risk', 'Actions']
-
-    for i, header in enumerate(headers):
+    for i, (header, color) in enumerate(headers):
         with header_cols[i]:
             st.markdown(f"""
             <div style="
-                color: #fff;
-                font-weight: 600;
+                color: {color};
+                font-weight: 700;
                 font-size: 0.95rem;
                 text-align: left;
                 padding: 0 16px;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            " 
-            onmouseover="this.style.background='rgba(76,175,80,0.3)'"
-            onmouseout="this.style.background='transparent'">
+                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            ">
                 {header}
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
+    # Create table rows
+    for idx, (_, row) in enumerate(df.iterrows()):
+        item_key = f"{start_idx}_{idx}_{row['Item']}"
+        is_expanded = item_key in st.session_state.expanded_items
 
-def create_professional_table_row(row, item_key, idx, is_expanded, start_idx):
-    """Create a professional table row matching Option 1 design"""
-
-    # Determine profit-based styling for Option 1
-    margin = row['Net Margin']
-    if margin >= 5000:
-        profit_color = "#FFD700"
-        profit_class = "exceptional"
-    elif margin >= 2000:
-        profit_color = "#4CAF50"
-        profit_class = "excellent"
-    elif margin >= 1000:
-        profit_color = "#2196F3"
-        profit_class = "good"
-    else:
-        profit_color = "#FFA726"
-        profit_class = "decent"
-
-    # Row container with Option 1 styling
-    st.markdown(f"""
-    <div style="
-        background: transparent;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 14px 0;
-        transition: all 0.2s ease;
-    " 
-    onmouseover="this.style.background='rgba(255, 255, 255, 0.03)'"
-    onmouseout="this.style.background='transparent'"
-    class="professional-row profit-{profit_class}">
-    """, unsafe_allow_html=True)
-
-    # Table columns with Option 1 spacing
-    row_cols = st.columns([2.5, 1.2, 1.2, 1.8, 1.3, 1.2, 1.5])
-
-    # Item name - Option 1 styling
-    with row_cols[0]:
-        st.markdown(f"""
-        <div style="
-            color: #FFD700;
-            font-weight: 600;
-            font-size: 1rem;
-            padding: 0 16px;
-            text-align: left;
-        ">
-            {row['Item']}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Buy price - Option 1 styling
-    with row_cols[1]:
-        st.markdown(f"""
-        <div style="
-            color: #4CAF50;
-            font-weight: 500;
-            font-size: 0.95rem;
-            text-align: left;
-            padding: 0 16px;
-        ">
-            {format_price(row['Buy Price'])}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Sell price - Option 1 styling
-    with row_cols[2]:
-        st.markdown(f"""
-        <div style="
-            color: #FF6B6B;
-            font-weight: 500;
-            font-size: 0.95rem;
-            text-align: left;
-            padding: 0 16px;
-        ">
-            {format_price(row['Sell Price'])}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Profit and ROI - Option 1 styling
-    with row_cols[3]:
-        st.markdown(f"""
-        <div style="
-            color: {profit_color};
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-align: left;
-            padding: 0 16px;
-        ">
-            {format_price(margin)} ({row['ROI (%)']:.1f}%)
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Volume - Option 1 styling
-    with row_cols[4]:
-        st.markdown(f"""
-        <div style="
-            color: #81C784;
-            font-weight: 400;
-            font-size: 0.95rem;
-            text-align: left;
-            padding: 0 16px;
-        ">
-            {format_price(row['1h Volume'])}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Risk - Option 1 badge styling
-    with row_cols[5]:
-        risk_rating = str(row.get('Risk Rating', 'N/A'))
-        if "SAFE" in risk_rating:
-            badge_bg = "linear-gradient(135deg, #4CAF50, #388E3C)"
-            risk_text = "SAFE"
-        elif "HIGH RISK" in risk_rating:
-            badge_bg = "linear-gradient(135deg, #FF6B6B, #E53935)"
-            risk_text = "HIGH RISK"
+        # Determine profit class
+        margin = row['Net Margin']
+        if margin >= 2000:
+            profit_class = "profit-high"
+        elif margin >= 500:
+            profit_class = "profit-good"
         else:
-            badge_bg = "linear-gradient(135deg, #FF9800, #F57C00)"
-            risk_text = "MODERATE"
+            profit_class = "profit-ok"
 
-        st.markdown(f"""
-        <div style="
-            background: {badge_bg};
-            color: white;
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-align: center;
-            padding: 4px 8px;
-            border-radius: 12px;
-            margin: 0 16px;
-            display: inline-block;
-            min-width: 60px;
-        ">
-            {risk_text}
-        </div>
-        """, unsafe_allow_html=True)
+        # Create row
+        st.markdown('<div class="table-row">', unsafe_allow_html=True)
+        row_cols = st.columns([2.5, 1.3, 1.3, 1.8, 1.3, 1.2, 1.6])
 
-    # Actions - Option 1 button styling
-    with row_cols[6]:
-        action_cols = st.columns([1, 1])
-
-        with action_cols[0]:
-            # Chart button with Option 1 styling
-            st.markdown("""
-            <style>
-            .chart-btn {
-                background: linear-gradient(135deg, #2196F3, #1976D2) !important;
-                color: white !important;
-                border: none !important;
-                border-radius: 6px !important;
-                padding: 6px 12px !important;
-                font-size: 0.85rem !important;
-                font-weight: 500 !important;
-                cursor: pointer !important;
-                transition: all 0.2s ease !important;
-            }
-            .chart-btn:hover {
-                background: linear-gradient(135deg, #1976D2, #1565C0) !important;
-                transform: translateY(-1px) !important;
-            }
-            </style>
+        # Item name
+        with row_cols[0]:
+            st.markdown(f"""
+            <div class="item-name" style="padding: 0 16px;">
+                {row['Item']}
+            </div>
             """, unsafe_allow_html=True)
 
-            if st.button("📊 Chart", key=f"prof_chart_{item_key}", help="View Chart", use_container_width=True):
-                st.session_state['selected_item'] = row['Item']
-                st.session_state.page = 'charts'
-                st.rerun()
-
-        with action_cols[1]:
-            # Expand button with Option 1 styling
-            st.markdown("""
-            <style>
-            .expand-btn {
-                background: linear-gradient(135deg, #9C27B0, #7B1FA2) !important;
-                color: white !important;
-                border: none !important;
-                border-radius: 6px !important;
-                padding: 6px 12px !important;
-                font-size: 0.85rem !important;
-                font-weight: 500 !important;
-                cursor: pointer !important;
-                transition: all 0.2s ease !important;
-            }
-            .expand-btn:hover {
-                background: linear-gradient(135deg, #7B1FA2, #6A1B9A) !important;
-                transform: translateY(-1px) !important;
-            }
-            </style>
+        # Buy price
+        with row_cols[1]:
+            st.markdown(f"""
+            <div class="buy-price" style="padding: 0 16px;">
+                {format_price(row['Buy Price'])}
+            </div>
             """, unsafe_allow_html=True)
 
-            expand_label = "📋 Details"
-            if st.button(expand_label, key=f"prof_expand_{item_key}", help="Toggle Details", use_container_width=True):
-                if is_expanded:
-                    st.session_state.expanded_items.discard(item_key)
-                else:
-                    st.session_state.expanded_items.add(item_key)
-                st.rerun()
+        # Sell price
+        with row_cols[2]:
+            st.markdown(f"""
+            <div class="sell-price" style="padding: 0 16px;">
+                {format_price(row['Sell Price'])}
+            </div>
+            """, unsafe_allow_html=True)
 
-    # Close row container
-    st.markdown("</div>", unsafe_allow_html=True)
+        # Profit and ROI
+        with row_cols[3]:
+            st.markdown(f"""
+            <div class="{profit_class}" style="padding: 0 16px;">
+                {format_price(margin)} ({row['ROI (%)']:.1f}%)
+            </div>
+            """, unsafe_allow_html=True)
 
-    # Show expanded details if needed
-    if is_expanded:
-        create_professional_row_expansion(row, item_key)
+        # Volume
+        with row_cols[4]:
+            st.markdown(f"""
+            <div class="volume" style="padding: 0 16px;">
+                {format_price(row['1h Volume'])}
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Risk badge
+        with row_cols[5]:
+            risk_rating = str(row.get('Risk Rating', 'N/A'))
+            if "SAFE" in risk_rating:
+                risk_class = "risk-safe"
+                risk_text = "SAFE"
+            elif "HIGH RISK" in risk_rating:
+                risk_class = "risk-high"
+                risk_text = "HIGH RISK"
+            else:
+                risk_class = "risk-moderate"
+                risk_text = "MODERATE"
+
+            st.markdown(f"""
+            <div style="padding: 0 16px;">
+                <span class="risk-badge {risk_class}">
+                    {risk_text}
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Actions
+        with row_cols[6]:
+            action_cols = st.columns([1, 1])
+
+            with action_cols[0]:
+                if st.button("📊 Chart", key=f"chart_{item_key}", help="View Chart", use_container_width=True):
+                    st.session_state['selected_item'] = row['Item']
+                    st.session_state.page = 'charts'
+                    st.rerun()
+
+            with action_cols[1]:
+                expand_label = "📋 Details"
+                if st.button(expand_label, key=f"details_{item_key}", help="View Details", use_container_width=True):
+                    if is_expanded:
+                        st.session_state.expanded_items.discard(item_key)
+                    else:
+                        st.session_state.expanded_items.add(item_key)
+                    st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Show expanded details if needed
+        if is_expanded:
+            create_expanded_details(row, item_key)
+
+    # Close table
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
-def create_professional_row_expansion(row, item_key):
-    """Create professional expanded row details"""
+def create_expanded_details(row, item_key):
+    """Create expanded row details"""
 
-    st.markdown(f"""
+    st.markdown("""
     <div style="
         background: rgba(0, 0, 0, 0.2);
         border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -723,10 +593,8 @@ def create_professional_row_expansion(row, item_key):
 
     with detail_cols[1]:
         st.markdown("**💰 Profit Analysis**")
-        ge_tax = calculate_ge_tax(row['Sell Price']) if 'calculate_ge_tax' in globals() else 0
-        net_after_tax = row['Net Margin'] - ge_tax
-        st.write(f"Before Tax: {format_price(row['Net Margin'])}")
-        st.write(f"After Tax: {format_price(net_after_tax)}")
+        st.write(f"Gross Profit: {format_price(row['Net Margin'])}")
+        st.write(f"ROI: {row['ROI (%)']:.1f}%")
 
     with detail_cols[2]:
         st.markdown("**⚖️ Risk Factors**")
