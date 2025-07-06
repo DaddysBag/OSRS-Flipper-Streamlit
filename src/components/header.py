@@ -8,9 +8,11 @@ import datetime
 from cache_manager import cache_manager
 from src.components.ui_components import create_hero_section, create_quick_stats_row, create_metric_card
 from src.components.performance_metrics import create_performance_dashboard, create_performance_badge_advanced
+from src.utils.mobile_utils import is_mobile, create_mobile_friendly_metric, get_mobile_columns
+
 
 def create_enhanced_header():
-    """Create the modern enhanced header with OSRS theming"""
+    """Create the modern enhanced header with OSRS theming and mobile responsiveness"""
 
     from src.components.ui_components import create_hero_section, create_quick_stats_row, create_metric_card
 
@@ -28,33 +30,63 @@ def create_enhanced_header():
     # Modern hero section
     create_hero_section()
 
-    # Quick stats row with modern styling
-    col1, col2, col3, col4 = st.columns(4)
+    # DEFINE ALL THE VARIABLES (this was missing!)
+    api_status = "Connected" if cache_stats['hit_rate'] > 0 else "Disconnected"
+    status_delta = "Online" if cache_stats['hit_rate'] > 0 else "Offline"
 
-    with col1:
-        api_status = "Connected" if cache_stats['hit_rate'] > 0 else "Disconnected"
-        status_delta = "Online" if cache_stats['hit_rate'] > 0 else "Offline"
-        create_metric_card("API Status", api_status, delta=status_delta, icon="🌐",
-                           color="#32CD32" if cache_stats['hit_rate'] > 0 else "#FF6B6B")
+    cache_performance = f"{cache_stats['hit_rate']:.1f}%"
+    cache_delta = "Optimized" if cache_stats['hit_rate'] > 70 else "Needs Improvement"
 
-    with col2:
-        cache_performance = f"{cache_stats['hit_rate']:.1f}%"
-        cache_delta = "Optimized" if cache_stats['hit_rate'] > 70 else "Needs Improvement"
-        create_metric_card("Cache Performance", cache_performance, delta=cache_delta, icon="⚡", color="#4A90E2")
+    data_age = f"{minutes_ago}m ago"
+    freshness_delta = "Fresh" if minutes_ago < 5 else "Recent" if minutes_ago < 15 else "Stale"
 
-    with col3:
-        data_age = f"{minutes_ago}m ago"
-        freshness_delta = "Fresh" if minutes_ago < 5 else "Recent" if minutes_ago < 15 else "Stale"
-        create_metric_card("Data Freshness", data_age, delta=freshness_delta, icon="⏰", color="#FF8C00")
+    alert_value = "Active" if not st.session_state.get('show_all_table', False) else "Disabled"
+    alert_delta = "Ready" if alert_value == "Active" else "System Disabled"
 
-    with col4:
-        alert_value = "Active" if not st.session_state.get('show_all_table', False) else "Disabled"
-        alert_delta = "Ready" if alert_value == "Active" else "System Disabled"
-        create_metric_card("Alert System", alert_value, delta=alert_delta, icon="🔔",
-                           color="#FFD700" if alert_value == "Active" else "#8A94A6")
+    # Check if mobile (with fallback if mobile utils not available)
+    try:
+        from src.utils.mobile_utils import is_mobile, create_mobile_friendly_metric
+        mobile_mode = is_mobile()
+    except ImportError:
+        mobile_mode = False  # Fallback to desktop mode
 
-    # Add performance dashboard at the bottom of header
-    create_performance_dashboard()
+    # Responsive stats row
+    if mobile_mode:
+        # Stack metrics vertically on mobile
+        try:
+            create_mobile_friendly_metric("API Status", api_status, delta=status_delta, icon="🌐")
+            create_mobile_friendly_metric("Cache Performance", cache_performance, delta=cache_delta, icon="⚡")
+            create_mobile_friendly_metric("Data Freshness", data_age, delta=freshness_delta, icon="⏰")
+            create_mobile_friendly_metric("Alert System", alert_value, delta=alert_delta, icon="🔔")
+        except:
+            # Fallback to desktop layout if mobile functions fail
+            mobile_mode = False
+
+    if not mobile_mode:
+        # Original 4-column layout for desktop
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            create_metric_card("API Status", api_status, delta=status_delta, icon="🌐",
+                               color="#32CD32" if cache_stats['hit_rate'] > 0 else "#FF6B6B")
+
+        with col2:
+            create_metric_card("Cache Performance", cache_performance, delta=cache_delta, icon="⚡", color="#4A90E2")
+
+        with col3:
+            create_metric_card("Data Freshness", data_age, delta=freshness_delta, icon="⏰", color="#FF8C00")
+
+        with col4:
+            create_metric_card("Alert System", alert_value, delta=alert_delta, icon="🔔",
+                               color="#FFD700" if alert_value == "Active" else "#8A94A6")
+
+    # Add performance dashboard at the end (if available)
+    try:
+        from src.components.performance_metrics import create_performance_dashboard
+        create_performance_dashboard()
+    except ImportError:
+        # Performance dashboard not available yet - continue without it
+        pass
 
 def create_navigation():
     """Create navigation breadcrumbs and page selector"""

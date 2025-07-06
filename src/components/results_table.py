@@ -7,6 +7,7 @@ import streamlit as st
 import pandas as pd
 from utils import calculate_ge_tax, get_buy_limits
 from src.utils.error_handler import safe_execute, ErrorHandler
+from src.utils.mobile_utils import is_mobile, create_mobile_table_card
 
 
 def create_table_header(total_items, avg_margin, avg_risk_util):
@@ -118,8 +119,9 @@ def process_dataframe_for_display(df):
 
     return display_df
 
+
 def display_paginated_table(df, items_per_page=25):
-    """Display results using the new modern table design with error handling"""
+    """Display results using mobile-responsive design"""
 
     try:
         # Check if we have valid data first
@@ -132,11 +134,11 @@ def display_paginated_table(df, items_per_page=25):
             st.markdown("💡 **Try:** Lowering your filter requirements or enabling 'Show All'")
             return
 
-        # Import the new modern table
-        from src.components.modern_table import create_modern_results_table
-
-        # Use the new modern table with error handling
-        create_modern_results_table(df, items_per_page)
+        # Check if mobile
+        if is_mobile():
+            display_mobile_card_view(df, items_per_page)
+        else:
+            display_desktop_table_view(df, items_per_page)
 
     except ImportError as e:
         st.error(f"📊 **Table Component Error**: {e}")
@@ -149,12 +151,12 @@ def display_paginated_table(df, items_per_page=25):
             st.error(f"❌ **Display Failed**: {fallback_error}")
 
     except Exception as e:
+        from src.utils.error_handler import ErrorHandler
         ErrorHandler.handle_ui_error(e, "Table Display")
 
         # Show basic fallback table
         st.markdown("### 📊 Basic Results Table")
         try:
-            # Show just essential columns if full table fails
             essential_cols = ['Item', 'Buy Price', 'Sell Price', 'Net Margin', 'ROI (%)']
             available_cols = [col for col in essential_cols if col in df.columns]
 
@@ -166,6 +168,178 @@ def display_paginated_table(df, items_per_page=25):
         except Exception as final_error:
             st.error(f"❌ **Critical Table Error**: {final_error}")
             st.info("🔄 Please refresh the page or clear cache to resolve this issue")
+
+
+def display_mobile_card_view(df, items_per_page):
+    """Display mobile-optimized card view"""
+
+    # Mobile header
+    st.markdown("### 📱 Flip Opportunities")
+
+    # Quick stats for mobile
+    col1, col2 = st.columns(2)
+    with col1:
+        from src.utils.mobile_utils import create_mobile_friendly_metric
+        create_mobile_friendly_metric("Total Items", len(df), icon="📊")
+    with col2:
+        avg_margin = df['Net Margin'].mean() if 'Net Margin' in df.columns else 0
+        create_mobile_friendly_metric("Avg Margin", f"{avg_margin:,.0f} gp", icon="💰")
+
+    # Pagination for mobile
+    if 'mobile_page' not in st.session_state:
+        st.session_state.mobile_page = 0
+
+    mobile_items_per_page = 10  # Fewer items for mobile
+    total_pages = (len(df) + mobile_items_per_page - 1) // mobile_items_per_page
+    start_idx = st.session_state.mobile_page * mobile_items_per_page
+    end_idx = min(start_idx + mobile_items_per_page, len(df))
+
+    # Display cards
+    current_items = df.iloc[start_idx:end_idx]
+
+    for idx, (_, row) in enumerate(current_items.iterrows()):
+        from src.utils.mobile_utils import create_mobile_table_card
+        create_mobile_table_card(row.to_dict(), start_idx + idx)
+
+    # Mobile pagination
+    create_mobile_pagination(total_pages, start_idx, end_idx, len(df))
+
+
+def display_desktop_table_view(df, items_per_page):
+    """Display desktop table view"""
+
+    # Import the modern table for desktop
+    try:
+        from src.components.modern_table import create_modern_results_table
+        create_modern_results_table(df, items_per_page)
+    except ImportError:
+        # Fallback to basic table
+        st.dataframe(df.head(items_per_page), use_container_width=True)
+
+
+def create_mobile_pagination(total_pages, start_idx, end_idx, total_items):
+    """Create mobile-friendly pagination"""
+
+    st.markdown("---")
+
+    # Page info
+    st.markdown(f"""
+    <div style="text-align: center; color: #4CAF50; font-weight: 500; margin: 16px 0;">
+        📄 Page {st.session_state.mobile_page + 1} of {total_pages} 
+        <span style="color: #bbb;">({start_idx + 1}-{end_idx} of {total_items})</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Navigation buttons
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if st.button("⏮️", disabled=st.session_state.mobile_page == 0, key="mobile_first", help="First page"):
+            st.session_state.mobile_page = 0
+            st.rerun()
+
+    with col2:
+        if st.button("⬅️", disabled=st.session_state.mobile_page == 0, key="mobile_prev", help="Previous page"):
+            st.session_state.mobile_page = max(0, st.session_state.mobile_page - 1)
+            st.rerun()
+
+    with col3:
+        if st.button("➡️", disabled=st.session_state.mobile_page >= total_pages - 1, key="mobile_next",
+                     help="Next page"):
+            st.session_state.mobile_page = min(total_pages - 1, st.session_state.mobile_page + 1)
+            st.rerun()
+
+    with col4:
+        if st.button("⏭️", disabled=st.session_state.mobile_page >= total_pages - 1, key="mobile_last",
+                     help="Last page"):
+            st.session_state.mobile_page = total_pages - 1
+            st.rerun()
+
+
+def display_mobile_card_view(df, items_per_page):
+    """Display mobile-optimized card view"""
+
+    # Mobile header
+    st.markdown("### 📱 Flip Opportunities")
+
+    # Quick stats for mobile
+    col1, col2 = st.columns(2)
+    with col1:
+        from src.utils.mobile_utils import create_mobile_friendly_metric
+        create_mobile_friendly_metric("Total Items", len(df), icon="📊")
+    with col2:
+        avg_margin = df['Net Margin'].mean() if 'Net Margin' in df.columns else 0
+        create_mobile_friendly_metric("Avg Margin", f"{avg_margin:,.0f} gp", icon="💰")
+
+    # Pagination for mobile
+    if 'mobile_page' not in st.session_state:
+        st.session_state.mobile_page = 0
+
+    mobile_items_per_page = 10  # Fewer items for mobile
+    total_pages = (len(df) + mobile_items_per_page - 1) // mobile_items_per_page
+    start_idx = st.session_state.mobile_page * mobile_items_per_page
+    end_idx = min(start_idx + mobile_items_per_page, len(df))
+
+    # Display cards
+    current_items = df.iloc[start_idx:end_idx]
+
+    for idx, (_, row) in enumerate(current_items.iterrows()):
+        from src.utils.mobile_utils import create_mobile_table_card
+        create_mobile_table_card(row.to_dict(), start_idx + idx)
+
+    # Mobile pagination
+    create_mobile_pagination(total_pages, start_idx, end_idx, len(df))
+
+
+def display_desktop_table_view(df, items_per_page):
+    """Display desktop table view"""
+
+    # Import the modern table for desktop
+    try:
+        from src.components.modern_table import create_modern_results_table
+        create_modern_results_table(df, items_per_page)
+    except ImportError:
+        # Fallback to basic table
+        st.dataframe(df.head(items_per_page), use_container_width=True)
+
+
+def create_mobile_pagination(total_pages, start_idx, end_idx, total_items):
+    """Create mobile-friendly pagination"""
+
+    st.markdown("---")
+
+    # Page info
+    st.markdown(f"""
+    <div style="text-align: center; color: #4CAF50; font-weight: 500; margin: 16px 0;">
+        📄 Page {st.session_state.mobile_page + 1} of {total_pages} 
+        <span style="color: #bbb;">({start_idx + 1}-{end_idx} of {total_items})</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Navigation buttons
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if st.button("⏮️", disabled=st.session_state.mobile_page == 0, key="mobile_first", help="First page"):
+            st.session_state.mobile_page = 0
+            st.rerun()
+
+    with col2:
+        if st.button("⬅️", disabled=st.session_state.mobile_page == 0, key="mobile_prev", help="Previous page"):
+            st.session_state.mobile_page = max(0, st.session_state.mobile_page - 1)
+            st.rerun()
+
+    with col3:
+        if st.button("➡️", disabled=st.session_state.mobile_page >= total_pages - 1, key="mobile_next",
+                     help="Next page"):
+            st.session_state.mobile_page = min(total_pages - 1, st.session_state.mobile_page + 1)
+            st.rerun()
+
+    with col4:
+        if st.button("⏭️", disabled=st.session_state.mobile_page >= total_pages - 1, key="mobile_last",
+                     help="Last page"):
+            st.session_state.mobile_page = total_pages - 1
+            st.rerun()
 
 
 def display_full_table(df):

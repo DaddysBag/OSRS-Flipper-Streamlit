@@ -392,6 +392,14 @@ def inject_custom_css():
     inject_modern_osrs_styles()
     inject_interactive_javascript()
 
+    try:
+        from src.utils.mobile_utils import inject_mobile_detection, inject_mobile_styles
+        inject_mobile_detection()
+        inject_mobile_styles()
+    except ImportError:
+        # Mobile utils not available yet - continue without them
+        pass
+
 def create_table_header(total_items, avg_margin, avg_risk_util):
     """Create enhanced table header with summary info"""
 
