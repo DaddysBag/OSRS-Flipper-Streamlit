@@ -34,6 +34,9 @@ def show_opportunities_page():
     else:
         render_no_results_content(filters)
 
+    from src.utils.error_handler import create_error_recovery_section
+    create_error_recovery_section()
+
 
 def initialize_page_state():
     """Initialize session state for opportunities page"""

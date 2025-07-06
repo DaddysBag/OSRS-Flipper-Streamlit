@@ -6,6 +6,7 @@ Handles the display of flip opportunities in a table format
 import streamlit as st
 import pandas as pd
 from utils import calculate_ge_tax, get_buy_limits
+from src.utils.error_handler import safe_execute, ErrorHandler
 
 
 def create_table_header(total_items, avg_margin, avg_risk_util):
@@ -117,59 +118,110 @@ def process_dataframe_for_display(df):
 
     return display_df
 
-
 def display_paginated_table(df, items_per_page=25):
-    """Display results using the new modern table design"""
+    """Display results using the new modern table design with error handling"""
 
-    # Import the new modern table
-    from src.components.modern_table import create_modern_results_table
+    try:
+        # Check if we have valid data first
+        if df is None:
+            st.error("📊 **Table Error**: No data provided")
+            return
 
-    # Use the new modern table instead of the old one
-    create_modern_results_table(df, items_per_page)
+        if df.empty:
+            st.info("📭 **No Results**: No flip opportunities found with current filters")
+            st.markdown("💡 **Try:** Lowering your filter requirements or enabling 'Show All'")
+            return
+
+        # Import the new modern table
+        from src.components.modern_table import create_modern_results_table
+
+        # Use the new modern table with error handling
+        create_modern_results_table(df, items_per_page)
+
+    except ImportError as e:
+        st.error(f"📊 **Table Component Error**: {e}")
+        st.info("💡 **Fallback**: Showing basic table instead")
+
+        # Fallback to simple table display
+        try:
+            st.dataframe(df.head(items_per_page), use_container_width=True)
+        except Exception as fallback_error:
+            st.error(f"❌ **Display Failed**: {fallback_error}")
+
+    except Exception as e:
+        ErrorHandler.handle_ui_error(e, "Table Display")
+
+        # Show basic fallback table
+        st.markdown("### 📊 Basic Results Table")
+        try:
+            # Show just essential columns if full table fails
+            essential_cols = ['Item', 'Buy Price', 'Sell Price', 'Net Margin', 'ROI (%)']
+            available_cols = [col for col in essential_cols if col in df.columns]
+
+            if available_cols:
+                st.dataframe(df[available_cols].head(items_per_page), use_container_width=True)
+            else:
+                st.dataframe(df.head(items_per_page), use_container_width=True)
+
+        except Exception as final_error:
+            st.error(f"❌ **Critical Table Error**: {final_error}")
+            st.info("🔄 Please refresh the page or clear cache to resolve this issue")
 
 
 def display_full_table(df):
-    """Display the full table in scrollable format"""
+    """Display the full table in scrollable format with error handling"""
 
-    st.markdown("---")
-    st.subheader("📊 All Items - Scrollable Table")
+    try:
+        if df is None or df.empty:
+            st.warning("📭 No data available for full table view")
+            return
 
-    column_config = create_column_config()
+        st.markdown("---")
+        st.subheader("📊 All Items - Scrollable Table")
 
-    st.dataframe(
-        df,
-        use_container_width=True,
-        key="all_items_table",
-        height=600,
-        hide_index=True,
-        column_config=column_config
-    )
+        column_config = create_column_config()
 
-    # Quick chart access
-    st.markdown("---")
-    st.subheader("📈 Quick Chart Access")
+        st.dataframe(
+            df,
+            use_container_width=True,
+            key="all_items_table",
+            height=600,
+            hide_index=True,
+            column_config=column_config
+        )
 
-    search_item = st.text_input("🔍 Search for item to chart:",
-                                placeholder="Type exact item name...",
-                                key="full_table_search")
+        # Quick chart access
+        st.markdown("---")
+        st.subheader("📈 Quick Chart Access")
 
-    if search_item:
-        matching_items = df[df['Item'].str.contains(search_item, case=False, na=False)]
-        if not matching_items.empty:
-            for _, row in matching_items.head(5).iterrows():
-                if st.button(f"📊 {row['Item']}", key=f"full_search_{row['Item']}"):
-                    st.session_state['selected_item'] = row['Item']
-                    st.session_state.page = 'charts'
-                    st.rerun()
-        else:
-            st.warning("No items found matching your search.")
+        search_item = st.text_input("🔍 Search for item to chart:",
+                                    placeholder="Type exact item name...",
+                                    key="full_table_search")
 
-    # Back to paginated view
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("📄 ⬅️ Back to Paginated View", type="primary", use_container_width=True):
-            st.session_state['show_all_table'] = False
-            st.rerun()
+        if search_item:
+            try:
+                matching_items = df[df['Item'].str.contains(search_item, case=False, na=False)]
+                if not matching_items.empty:
+                    for _, row in matching_items.head(5).iterrows():
+                        if st.button(f"📊 {row['Item']}", key=f"full_search_{row['Item']}"):
+                            st.session_state['selected_item'] = row['Item']
+                            st.session_state.page = 'charts'
+                            st.rerun()
+                else:
+                    st.warning("No items found matching your search.")
+            except Exception as search_error:
+                st.error(f"🔍 Search error: {search_error}")
+
+        # Back to paginated view
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("📄 ⬅️ Back to Paginated View", type="primary", use_container_width=True):
+                st.session_state['show_all_table'] = False
+                st.rerun()
+
+    except Exception as e:
+        ErrorHandler.handle_ui_error(e, "Full Table Display")
+        st.info("💡 Try using the paginated view instead")
 
 
 def display_table_page(df, start_idx, end_idx, total_pages, total_items):
@@ -270,45 +322,42 @@ def display_pagination_controls(total_pages, total_items, start_idx, end_idx):
 
 
 def create_column_config():
-    """Create column configuration for dataframe display"""
+    """Create column configuration for dataframe display with error handling"""
 
-    return {
-        'Buy Price': st.column_config.NumberColumn(
-            'Buy Price',
-            help='Current buy price',
-            format='%d gp'
-        ),
-        'Sell Price': st.column_config.NumberColumn(
-            'Sell Price',
-            help='Current sell price',
-            format='%d gp'
-        ),
-        'Net Margin': st.column_config.NumberColumn(
-            'Net Margin',
-            help='Profit after GE tax',
-            format='%d gp'
-        ),
-        'ROI (%)': st.column_config.NumberColumn(
-            'ROI (%)',
-            help='Return on investment',
-            format='%.1f%%'
-        ),
-        '1h Volume': st.column_config.NumberColumn(
-            '1h Volume',
-            help='Trading volume per hour',
-            format='%d'
-        ),
-        'Risk Adjusted Utility': st.column_config.NumberColumn(
-            'Risk Adj. Utility',
-            help='Utility score adjusted for manipulation and volatility risk',
-            format='%.0f'
-        ),
-        'Manipulation Risk': st.column_config.TextColumn(
-            'Manip. Risk',
-            help='Risk level of price manipulation (Normal/Low/Medium/High)'
-        ),
-        'Volatility Level': st.column_config.TextColumn(
-            'Volatility',
-            help='Price volatility level (Very Low to Very High)'
-        )
-    }
+    try:
+        return {
+            'Buy Price': st.column_config.NumberColumn(
+                'Buy Price',
+                help='Current buy price',
+                format='%d gp'
+            ),
+            'Sell Price': st.column_config.NumberColumn(
+                'Sell Price',
+                help='Current sell price',
+                format='%d gp'
+            ),
+            'Net Margin': st.column_config.NumberColumn(
+                'Net Margin',
+                help='Profit after GE tax',
+                format='%d gp'
+            ),
+            'ROI (%)': st.column_config.NumberColumn(
+                'ROI (%)',
+                help='Return on investment',
+                format='%.1f%%'
+            ),
+            '1h Volume': st.column_config.NumberColumn(
+                '1h Volume',
+                help='Trading volume per hour',
+                format='%d'
+            ),
+            'Risk Adjusted Utility': st.column_config.NumberColumn(
+                'Risk Adj. Utility',
+                help='Risk-adjusted utility score',
+                format='%.0f'
+            )
+        }
+    except Exception as e:
+        # Return empty config if there's an error
+        st.warning(f"⚠️ Column formatting unavailable: {e}")
+        return {}
