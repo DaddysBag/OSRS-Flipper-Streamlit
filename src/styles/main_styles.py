@@ -812,6 +812,46 @@ def inject_modern_osrs_styles():
         .filter-section.active {
             animation: section-glow 3s ease-in-out !important;
         }
+        
+        /* Profit-Based Row Background Enhancement */
+        .stDataFrame [data-testid="dataframe"] table tbody tr {
+            transition: all 0.3s ease !important;
+        }
+        
+        /* Target rows by profit values - Exceptional (5000+ gp) */
+        .stDataFrame [data-testid="dataframe"] table tbody tr:has(td:contains("5K"), td:contains("6K"), td:contains("7K"), td:contains("8K"), td:contains("9K"), td:contains("10K"), td:contains("11K"), td:contains("12K"), td:contains("13K"), td:contains("14K"), td:contains("15K")) {
+            background: linear-gradient(90deg, 
+                rgba(255, 215, 0, 0.15) 0%, 
+                rgba(255, 215, 0, 0.05) 100%) !important;
+            border-left: 4px solid #FFD700 !important;
+            box-shadow: inset 0 1px 0 rgba(255, 215, 0, 0.2) !important;
+        }
+        
+        /* Target rows by profit values - Excellent (2000-4999 gp) */
+        .stDataFrame [data-testid="dataframe"] table tbody tr:has(td:contains("2K"), td:contains("3K"), td:contains("4K")) {
+            background: linear-gradient(90deg, 
+                rgba(76, 175, 80, 0.12) 0%, 
+                rgba(76, 175, 80, 0.04) 100%) !important;
+            border-left: 3px solid #4CAF50 !important;
+            box-shadow: inset 0 1px 0 rgba(76, 175, 80, 0.15) !important;
+        }
+        
+        /* Target rows by profit values - Good (1000-1999 gp) */
+        .stDataFrame [data-testid="dataframe"] table tbody tr:has(td:contains("1K"), td:contains("1.0K"), td:contains("1.1K"), td:contains("1.2K"), td:contains("1.3K"), td:contains("1.4K"), td:contains("1.5K"), td:contains("1.6K"), td:contains("1.7K"), td:contains("1.8K"), td:contains("1.9K")) {
+            background: linear-gradient(90deg, 
+                rgba(74, 144, 226, 0.1) 0%, 
+                rgba(74, 144, 226, 0.03) 100%) !important;
+            border-left: 2px solid #4A90E2 !important;
+            box-shadow: inset 0 1px 0 rgba(74, 144, 226, 0.1) !important;
+        }
+        
+        /* Enhanced hover effects for profit-based rows */
+        .stDataFrame [data-testid="dataframe"] table tbody tr:has(td:contains("K")):hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 
+                0 4px 12px rgba(255, 215, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        }
 
         /* Utility Classes */
         .text-accent { color: var(--text-accent) !important; }

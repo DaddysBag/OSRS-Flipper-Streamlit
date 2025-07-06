@@ -312,14 +312,17 @@ def create_item_card(row, idx):
 
 
 def display_compact_table(df, start_idx):
-    """Display items in a compact, dense table format"""
+    """Display items in a compact, dense table format with integrated actions"""
 
     st.markdown("### 📊 Trading Opportunities (Compact View)")
 
-    # Create a streamlined dataframe for display
+    # Create a streamlined dataframe for display with action integration
     display_data = []
 
     for idx, (_, row) in enumerate(df.iterrows()):
+        # Get profit tier for background styling
+        profit_tier = get_profit_tier_class(row['Net Margin'])
+
         # Format the data for compact display
         display_data.append({
             '🎯 Item': row['Item'],
@@ -327,19 +330,150 @@ def display_compact_table(df, start_idx):
             '💰 Sell': row['Sell Price Formatted'],
             '📈 Profit': f"{row['Margin Formatted']} ({row['ROI (%)']:.1f}%)",
             '📊 Volume': f"{row['1h Volume']:,}",
-            '⚡ Risk': row['Risk Rating']
+            '⚡ Risk': row['Risk Rating'],
+            'Profit_Value': row['Net Margin'],  # Hidden column for styling
+            'Item_Name': row['Item']  # Hidden column for actions
         })
 
     # Convert to dataframe for streamlit display
     compact_df = pd.DataFrame(display_data)
 
-    # Display as streamlit dataframe with custom configuration - no actions column
+    # Display as streamlit dataframe with custom configuration
     st.dataframe(
-        compact_df,
+        compact_df[['🎯 Item', '💰 Buy', '💰 Sell', '📈 Profit', '📊 Volume', '⚡ Risk']],
         use_container_width=True,
         hide_index=True,
         height=400  # Fixed height for scrolling
     )
+
+    # Add quick chart action below table
+    create_integrated_chart_actions(df, start_idx)
+
+    # Store dataframe for expandable details
+    st.session_state.current_table_df = df
+
+    # Add expandable details section
+    create_expandable_row_details()
+
+
+def get_profit_tier_class(margin):
+    """Get profit tier class for CSS styling"""
+    if margin >= 5000:
+        return "exceptional"
+    elif margin >= 2000:
+        return "excellent"
+    elif margin >= 1000:
+        return "good"
+    elif margin >= 500:
+        return "decent"
+    else:
+        return "low"
+
+
+def create_integrated_chart_actions(df, start_idx):
+    """Create integrated chart actions below the table"""
+
+    st.markdown("#### 📊 Quick Chart Access")
+
+    # Create columns for quick chart buttons (3 items per row)
+    items_per_row = 3
+    item_list = df['Item'].tolist()
+
+    for i in range(0, len(item_list), items_per_row):
+        cols = st.columns(items_per_row)
+
+        for j, col in enumerate(cols):
+            if i + j < len(item_list):
+                item_name = item_list[i + j]
+                with col:
+                    if st.button(
+                            f"📊 {item_name[:15]}{'...' if len(item_name) > 15 else ''}",
+                            key=f"chart_{start_idx}_{i + j}_{item_name}",
+                            help=f"View {item_name} chart",
+                            use_container_width=True
+                    ):
+                        st.session_state['selected_item'] = item_name
+                        st.session_state.page = 'charts'
+                        st.rerun()
+
+
+def create_expandable_row_details():
+    """Create expandable details section for selected table row"""
+
+    st.markdown("---")
+    st.markdown("#### 🔍 Item Details")
+
+    # Initialize selected item in session state
+    if 'selected_table_item' not in st.session_state:
+        st.session_state.selected_table_item = None
+
+    # Item selector
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
+        # Get current dataframe from session state if available
+        if 'current_table_df' in st.session_state and not st.session_state.current_table_df.empty:
+            df = st.session_state.current_table_df
+
+            selected_item = st.selectbox(
+                "Select item for detailed view:",
+                options=['None'] + df['Item'].tolist(),
+                key="expandable_item_selector",
+                help="Choose an item to see detailed information"
+            )
+
+            if selected_item and selected_item != 'None':
+                st.session_state.selected_table_item = selected_item
+
+                # Get item details
+                item_row = df[df['Item'] == selected_item].iloc[0]
+
+                # Create expandable details
+                with st.expander(f"📋 Detailed Analysis: {selected_item}", expanded=True):
+                    create_detailed_item_view(item_row)
+
+    with col2:
+        if st.session_state.selected_table_item:
+            if st.button("📊 View Chart", key="detail_chart_btn", type="primary"):
+                st.session_state['selected_item'] = st.session_state.selected_table_item
+                st.session_state.page = 'charts'
+                st.rerun()
+
+
+def create_detailed_item_view(item_row):
+    """Create detailed view for selected item"""
+
+    # Trading metrics
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Buy Price", f"{item_row['Buy Price']:,} gp")
+        st.metric("Sell Price", f"{item_row['Sell Price']:,} gp")
+
+    with col2:
+        st.metric("Net Profit", f"{item_row['Net Margin']:,} gp")
+        st.metric("ROI", f"{item_row['ROI (%)']:.1f}%")
+
+    with col3:
+        st.metric("1h Volume", f"{item_row['1h Volume']:,}")
+        if 'Data Age (min)' in item_row:
+            st.metric("Data Age", f"{item_row['Data Age (min)']:.0f}m")
+
+    # Risk assessment
+    st.markdown("**🔍 Risk Analysis:**")
+    risk_cols = st.columns(2)
+
+    with risk_cols[0]:
+        if 'Manipulation Score' in item_row:
+            st.write(f"🔬 Manipulation Score: {item_row['Manipulation Score']}/10")
+        if 'Volatility Score' in item_row:
+            st.write(f"📊 Volatility Score: {item_row['Volatility Score']}/10")
+
+    with risk_cols[1]:
+        if 'Season Ratio' in item_row:
+            st.write(f"🗓️ Season Ratio: {item_row['Season Ratio']:.2f}")
+        if 'Utility' in item_row:
+            st.write(f"⚡ Utility Score: {item_row['Utility']:,.0f}")
 
 
 def create_compact_action_buttons(df, start_idx):
