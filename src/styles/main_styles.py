@@ -112,41 +112,204 @@ def inject_modern_osrs_styles():
             color: var(--osrs-blue-light) !important;
         }
 
-        /* Enhanced Buttons */
+        /* Premium Enhanced Buttons */
         .stButton > button {
-            background: linear-gradient(135deg, var(--osrs-blue), var(--osrs-blue-light)) !important;
-            border: none !important;
-            border-radius: 12px !important;
+            background: linear-gradient(135deg, 
+                var(--osrs-blue) 0%, 
+                var(--osrs-blue-light) 50%, 
+                var(--osrs-blue) 100%) !important;
+            border: 1px solid rgba(74, 144, 226, 0.3) !important;
+            border-radius: 16px !important;
             color: white !important;
-            font-weight: 500 !important;
-            font-size: 0.875rem !important;
-            padding: 0.75rem 1.5rem !important;
-            transition: all 0.2s ease !important;
-            box-shadow: var(--shadow-button) !important;
+            font-weight: 600 !important;
+            font-size: 0.9rem !important;
+            padding: 12px 24px !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 
+                0 4px 16px rgba(74, 144, 226, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
             text-transform: none !important;
             letter-spacing: 0.025em !important;
+            position: relative !important;
+            overflow: hidden !important;
+            backdrop-filter: blur(10px) !important;
         }
-
+        
+        .stButton > button::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: -100% !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                transparent) !important;
+            transition: left 0.5s ease !important;
+        }
+        
         .stButton > button:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 24px rgba(74, 144, 226, 0.3) !important;
-            background: linear-gradient(135deg, var(--osrs-blue-light), var(--osrs-blue)) !important;
+            transform: translateY(-3px) scale(1.02) !important;
+            box-shadow: 
+                0 12px 32px rgba(74, 144, 226, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+            background: linear-gradient(135deg, 
+                var(--osrs-blue-light) 0%, 
+                var(--osrs-blue) 50%, 
+                var(--osrs-blue-light) 100%) !important;
+            border-color: rgba(74, 144, 226, 0.6) !important;
         }
-
+        
+        .stButton > button:hover::before {
+            left: 100% !important;
+        }
+        
         .stButton > button:active {
-            transform: translateY(0) !important;
+            transform: translateY(-1px) scale(1.01) !important;
+            transition: all 0.1s ease !important;
         }
-
-        /* Primary Button Variant */
+        
+        /* Premium Primary Button Variant */
         .stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, var(--osrs-gold), var(--osrs-gold-dark)) !important;
+            background: linear-gradient(135deg, 
+                var(--osrs-gold) 0%, 
+                var(--osrs-gold-dark) 50%, 
+                var(--osrs-gold) 100%) !important;
             color: var(--bg-primary) !important;
-            font-weight: 600 !important;
+            font-weight: 700 !important;
+            border: 1px solid rgba(255, 215, 0, 0.4) !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+            box-shadow: 
+                0 6px 20px rgba(255, 215, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
         }
-
+        
         .stButton > button[kind="primary"]:hover {
-            background: linear-gradient(135deg, var(--osrs-gold-dark), var(--osrs-gold)) !important;
-            box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4) !important;
+            background: linear-gradient(135deg, 
+                var(--osrs-gold-dark) 0%, 
+                var(--osrs-gold) 50%, 
+                var(--osrs-gold-dark) 100%) !important;
+            box-shadow: 
+                0 16px 40px rgba(255, 215, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+            border-color: rgba(255, 215, 0, 0.8) !important;
+        }
+        
+        /* Secondary Button Styling (Refresh Button) */
+        .stButton > button[kind="secondary"] {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                rgba(255, 255, 255, 0.05) 50%, 
+                rgba(255, 255, 255, 0.1) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            color: var(--text-primary) !important;
+            backdrop-filter: blur(15px) !important;
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+        }
+        
+        .stButton > button[kind="secondary"]:hover {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.15) 0%, 
+                rgba(255, 215, 0, 0.1) 50%, 
+                rgba(255, 255, 255, 0.15) 100%) !important;
+            border-color: rgba(255, 215, 0, 0.4) !important;
+            box-shadow: 
+                0 8px 24px rgba(255, 215, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+        }
+        
+        /* Enhanced Pagination Buttons */
+        .stButton > button:contains("⏮️"), 
+        .stButton > button:contains("⬅️"), 
+        .stButton > button:contains("➡️"), 
+        .stButton > button:contains("⏭️") {
+            min-width: 60px !important;
+            padding: 10px 16px !important;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.08) 0%, 
+                rgba(255, 215, 0, 0.05) 50%, 
+                rgba(255, 255, 255, 0.08) 100%) !important;
+            border: 1px solid rgba(255, 215, 0, 0.2) !important;
+            font-size: 1rem !important;
+        }
+        
+        .stButton > button:contains("⏮️"):hover, 
+        .stButton > button:contains("⬅️"):hover, 
+        .stButton > button:contains("➡️"):hover, 
+        .stButton > button:contains("⏭️"):hover {
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.15) 0%, 
+                rgba(255, 215, 0, 0.1) 50%, 
+                rgba(255, 215, 0, 0.15) 100%) !important;
+            border-color: rgba(255, 215, 0, 0.5) !important;
+            transform: translateY(-2px) scale(1.05) !important;
+        }
+        
+        /* Disabled Button States */
+        .stButton > button:disabled {
+            background: rgba(255, 255, 255, 0.03) !important;
+            color: rgba(255, 255, 255, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .stButton > button:disabled:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Enhanced Input Fields */
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stNumberInput > div > div > input {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.08) 0%, 
+                rgba(255, 255, 255, 0.04) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 12px !important;
+            color: var(--text-primary) !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+            padding: 12px 16px !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            backdrop-filter: blur(10px) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .stTextInput > div > div > input:focus,
+        .stSelectbox > div > div > select:focus,
+        .stNumberInput > div > div > input:focus {
+            border-color: var(--osrs-blue-light) !important;
+            box-shadow: 
+                0 0 0 3px rgba(74, 144, 226, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+            outline: none !important;
+            background: linear-gradient(135deg, 
+                rgba(74, 144, 226, 0.1) 0%, 
+                rgba(255, 255, 255, 0.08) 100%) !important;
+        }
+        
+        /* Enhanced Selectbox Dropdown */
+        .stSelectbox > div > div {
+            border-radius: 12px !important;
+            backdrop-filter: blur(15px) !important;
+        }
+        
+        /* Loading Button Animation */
+        @keyframes button-loading {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .stButton > button.loading {
+            animation: button-loading 1.5s infinite !important;
+            pointer-events: none !important;
         }
 
         /* Enhanced Metrics */
