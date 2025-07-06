@@ -6,7 +6,7 @@ Handles all data fetching and caching logic
 import streamlit as st
 import pandas as pd
 from data_fetchers import get_real_time_prices
-from filters import run_flip_scanner
+from osrs_flip_assistant import run_flip_scanner
 
 
 def load_flip_data(mode, force_refresh=False):
