@@ -217,14 +217,69 @@ def show_opportunities_page():
     MIN_VOLUME = st.session_state.get('min_volume', 500)
     MIN_UTILITY = st.session_state.get('min_utility', 10000)
 
-    # Debug Info
+    # Create sidebar with all filters and controls
+    mode, MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all = create_complete_sidebar()
+
+    # Store values in session state
+    st.session_state['min_margin'] = MIN_MARGIN
+    st.session_state['min_volume'] = MIN_VOLUME
+    st.session_state['min_utility'] = MIN_UTILITY
+
+    # Initialize variables
+    df = pd.DataFrame()
+    name2id = {}
+
+    # Main scan button or initial load
+    if st.button("🔄 Refresh Data", type="primary"):
+        with st.spinner("🔄 Processing data..."):
+            df, name2id = run_flip_scanner(mode)
+            if 'price_data' not in st.session_state:
+                st.session_state.price_data = get_real_time_prices()
+    else:
+        # Run initial scan if first time
+        if 'initial_load_done' not in st.session_state:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            try:
+                status_text.text("🚀 Starting OSRS Flip Assistant...")
+                progress_bar.progress(30)
+
+                status_text.text("💰 Fetching market data...")
+                progress_bar.progress(60)
+
+                df, name2id = run_flip_scanner(mode)
+                if 'price_data' not in st.session_state:
+                    st.session_state.price_data = get_real_time_prices()
+
+                progress_bar.progress(100)
+                status_text.text("✅ Ready!")
+                st.session_state.initial_load_done = True
+
+                # Clear progress after delay
+                import time
+                time.sleep(1)
+                progress_bar.empty()
+                status_text.empty()
+
+            except Exception as e:
+                progress_bar.empty()
+                status_text.empty()
+                st.error(f"❌ Error during initial load: {e}")
+                return
+        else:
+            # Quick load for subsequent visits
+            df, name2id = run_flip_scanner(mode)
+            if 'price_data' not in st.session_state:
+                st.session_state.price_data = get_real_time_prices()
+
+    # Debug section (optional) - CLEAN AND SIMPLE
     with st.expander("🔧 Debug Information"):
         st.write("**Current Configuration:**")
         st.write(f"- Min Margin: {MIN_MARGIN:,} gp")
         st.write(f"- Min Volume: {MIN_VOLUME:,}/hr")
         st.write(f"- Min Utility: {MIN_UTILITY:,}")
         st.write(f"- Show All: {show_all}")
-        st.write(f"- Season Threshold: {st.session_state.get('season_th', 0)}")
 
         if st.button("🧪 Test API Connections"):
             st.write("Testing item mapping API...")
@@ -252,115 +307,14 @@ def show_opportunities_page():
             else:
                 st.info("ge_limits.json already exists")
 
-            # Create sidebar with all filters and controls
-            mode, MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all = create_complete_sidebar()
+    # Get price data for trend viewer
+    price_data = st.session_state.get('price_data', {})
 
-            st.session_state['min_margin'] = MIN_MARGIN
-            st.session_state['min_volume'] = MIN_VOLUME
-            st.session_state['min_utility'] = MIN_UTILITY
-
-            # Initialize df to avoid UnboundLocalError
-            df = pd.DataFrame()
-            name2id = {}
-
-    # Main scan button
-    if st.button("🔄 Refresh Data", type="primary"):
-        # Enhanced loading with progress tracking
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-
-        try:
-            status_text.text("🔍 Loading item mappings...")
-            progress_bar.progress(20)
-
-            status_text.text("💰 Fetching current market prices...")
-            progress_bar.progress(40)
-
-            status_text.text("📊 Analyzing opportunities...")
-            progress_bar.progress(60)
-
-            with st.spinner("🔄 Processing data..."):
-                df, name2id = run_flip_scanner(mode)
-
-            progress_bar.progress(80)
-            status_text.text("✅ Finalizing results...")
-
-            # Store price data for trend viewer
-            if 'price_data' not in st.session_state:
-                st.session_state.price_data = get_real_time_prices()
-
-            progress_bar.progress(100)
-            status_text.text("🎉 Scan complete!")
-
-            # Clear progress indicators after short delay
-            import time
-            time.sleep(1)
-            progress_bar.empty()
-            status_text.empty()
-
-        except Exception as e:
-            progress_bar.empty()
-            status_text.empty()
-            st.error(f"❌ Error during scan: {e}")
-
+    # Ensure df exists (fallback)
+    if df.empty:
+        df = pd.DataFrame()
+        name2id = {}
     else:
-        # Run initial scan with loading
-        if 'initial_load_done' not in st.session_state:
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-
-            try:
-                status_text.text("🚀 Starting OSRS Flip Assistant...")
-                progress_bar.progress(10)
-
-                status_text.text("🔍 Loading item database...")
-                progress_bar.progress(30)
-
-                status_text.text("💰 Fetching market data...")
-                progress_bar.progress(50)
-
-                status_text.text("📊 Finding opportunities...")
-                progress_bar.progress(70)
-
-                # Enhanced loading for initial scan
-                loading_container = st.empty()
-                loading_container.markdown("""
-                                <div style="text-align: center; padding: 20px;">
-                                    <div class="loading-spinner"></div>
-                                    <p style="color: #4CAF50; margin-top: 10px;">🎯 Analyzing flipping opportunities...</p>
-                                </div>
-                                """, unsafe_allow_html=True)
-
-                df, name2id = run_flip_scanner(mode)
-
-                # Clear loading
-                loading_container.empty()
-                df, name2id = run_flip_scanner(mode)
-
-                progress_bar.progress(90)
-                status_text.text("✅ Ready!")
-
-                # Store price data for trend viewer
-                if 'price_data' not in st.session_state:
-                    st.session_state.price_data = get_real_time_prices()
-
-                progress_bar.progress(100)
-                status_text.text("🎉 Welcome to OSRS Flip Assistant!")
-
-                # Mark initial load as complete
-                st.session_state.initial_load_done = True
-
-                # Clear progress after delay
-                import time
-                time.sleep(1.5)
-                progress_bar.empty()
-                status_text.empty()
-
-            except Exception as e:
-                progress_bar.empty()
-                status_text.empty()
-                st.error(f"❌ Error during initial load: {e}")
-        else:
             # Quick load for subsequent visits
             # Create enhanced loading container
             loading_container = st.empty()
