@@ -1074,12 +1074,10 @@ def streamlit_dashboard():
     # Page content with dynamic titles
     if st.session_state.page == 'opportunities':
         create_enhanced_header()
-        create_performance_badge_advanced()
         show_opportunities_page()
     elif st.session_state.page == 'charts':
         selected_item = st.session_state.get('selected_item', 'No Item Selected')
         create_enhanced_header()
-        create_performance_badge_advanced()
         create_page_title('charts', selected_item)
         # Use the new dedicated charts page component
         from src.pages.charts_page import show_charts_page
