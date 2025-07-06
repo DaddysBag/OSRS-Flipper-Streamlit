@@ -71,16 +71,12 @@ def create_status_badge(status, size="normal"):
 def create_metric_card(label, value, delta=None, icon="📊", color="var(--osrs-blue-light)"):
     """Create enhanced metric cards"""
 
-    delta_html = ""
-    if delta:
-        delta_color = "var(--osrs-green-light)" if "+" in str(delta) else "var(--osrs-red-light)"
-        delta_html = f"""
-        <div style="
-            color: {delta_color};
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-top: 4px;
-        ">
+    # Clean up the delta to avoid showing CSS
+    delta_display = ""
+    if delta and not delta.startswith("var(") and not delta.startswith("color:"):
+        delta_color = "#32CD32" if "+" in str(delta) or "Fresh" in str(delta) or "Active" in str(delta) or "Optimized" in str(delta) else "#FF6B6B"
+        delta_display = f"""
+        <div style="color: {delta_color}; font-size: 0.75rem; font-weight: 500; margin-top: 4px;">
             {delta}
         </div>
         """
@@ -88,25 +84,13 @@ def create_metric_card(label, value, delta=None, icon="📊", color="var(--osrs-
     st.markdown(f"""
     <div class="osrs-card" style="text-align: center; padding: 20px;">
         <div style="font-size: 1.5rem; margin-bottom: 8px;">{icon}</div>
-        <div style="
-            color: {color};
-            font-size: 1.875rem;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 4px;
-        ">
+        <div style="color: {color}; font-size: 1.875rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;">
             {value}
         </div>
-        <div style="
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        ">
+        <div style="color: #B0B8C5; font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">
             {label}
         </div>
-        {delta_html}
+        {delta_display}
     </div>
     """, unsafe_allow_html=True)
 

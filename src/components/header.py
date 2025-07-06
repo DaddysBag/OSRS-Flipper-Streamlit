@@ -8,7 +8,6 @@ import datetime
 from cache_manager import cache_manager
 from src.components.ui_components import create_hero_section, create_quick_stats_row, create_metric_card
 
-
 def create_enhanced_header():
     """Create the modern enhanced header with OSRS theming"""
 
@@ -61,14 +60,14 @@ def create_enhanced_header():
 
     with col4:
         alert_status = "🔔 Active" if not st.session_state.get('show_all_table', False) else "🚫 Disabled"
+        alert_value = "Active" if "Active" in alert_status else "Disabled"
         create_metric_card(
             "Alert System",
-            alert_status.split(" ")[1],
-            delta=alert_status,
+            alert_value,
+            delta="System Ready" if "Active" in alert_status else "Disabled",
             icon="🔔",
-            color="var(--osrs-gold)" if "Active" in alert_status else "var(--text-muted)"
+            color="#FFD700" if "Active" in alert_status else "#8A94A6"
         )
-
 
 def create_navigation():
     """Create navigation breadcrumbs and page selector"""
@@ -109,7 +108,6 @@ def create_navigation():
                 st.session_state.page = 'opportunities'
                 st.rerun()
 
-
 def create_page_title(page_name, item_name=None):
     """Create dynamic page titles based on current page"""
 
@@ -122,7 +120,6 @@ def create_page_title(page_name, item_name=None):
         📊 {item_name} - Price Chart Analysis
         </h2>
         """, unsafe_allow_html=True)
-
 
 def create_performance_badge():
     """Create a performance monitoring badge"""
