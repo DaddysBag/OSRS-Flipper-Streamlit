@@ -5,6 +5,7 @@ Handles all data fetching and caching logic
 
 import streamlit as st
 import pandas as pd
+import time
 from data_fetchers import get_real_time_prices
 from filters import run_flip_scanner
 
