@@ -79,6 +79,7 @@ def create_simple_status_indicators():
         # Refresh button aligned to the right
         if st.button("🔄 Refresh Data", key="header_refresh", type="secondary"):
             st.session_state.last_update_time = current_time
+            st.session_state['force_data_refresh'] = True
             st.rerun()
 
 def create_navigation():

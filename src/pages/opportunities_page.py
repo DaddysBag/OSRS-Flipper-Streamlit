@@ -83,8 +83,11 @@ def create_fallback_filters(page_state):
 
 
 def load_data_with_progress(filters):
-    """Load flip data with progress indicators"""
-    force_refresh = st.button("🔄 Refresh Data", type="primary")
+    """Load flip data with refresh handled in header"""
+    # Refresh logic moved to header - check if refresh was triggered
+    force_refresh = st.session_state.get('force_data_refresh', False)
+    if force_refresh:
+        st.session_state['force_data_refresh'] = False  # Reset flag
 
     df, name2id = load_flip_data(filters['mode'], force_refresh)
 
