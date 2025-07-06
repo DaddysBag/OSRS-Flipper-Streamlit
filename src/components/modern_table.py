@@ -312,213 +312,288 @@ def create_item_card(row, idx):
 
 
 def display_compact_table(df, start_idx):
-    """Display custom table with inline chart buttons and expandable rows"""
+    """Display custom HTML table that mimics st.dataframe with expandable rows"""
 
     st.markdown("### 📊 Trading Opportunities (Compact View)")
 
-    # Initialize expanded rows state
-    if 'expanded_rows' not in st.session_state:
-        st.session_state.expanded_rows = set()
+    # Create the custom expandable table
+    create_expandable_html_table(df, start_idx)
 
-    # Create custom table header
-    st.markdown("""
+
+def create_expandable_html_table(df, start_idx):
+    """Create custom HTML table with inline expandable rows"""
+
+    # Generate unique table ID
+    table_id = f"trading_table_{start_idx}"
+
+    # Build table HTML
+    table_html = f"""
     <div style="
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1.5fr 1.2fr 1fr 0.8fr 0.6fr;
-        gap: 8px;
-        padding: 12px 16px;
-        background: rgba(255, 215, 0, 0.1);
-        border-radius: 8px 8px 0 0;
-        font-weight: 700;
-        color: #FFD700;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        overflow: hidden;
+        max-height: 400px;
+        overflow-y: auto;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     ">
-        <div>🎯 Item</div>
-        <div>💰 Buy</div>
-        <div>💸 Sell</div>
-        <div>📈 Profit</div>
-        <div>📊 Volume</div>
-        <div>⚖️ Risk</div>
-        <div>📊 Chart</div>
-        <div>📋</div>
-    </div>
-    """, unsafe_allow_html=True)
+        <table id="{table_id}" style="
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Inter', sans-serif;
+            background: transparent;
+        ">
+            <thead style="position: sticky; top: 0; z-index: 10;">
+                <tr style="
+                    background: rgba(255, 215, 0, 0.1);
+                    color: #FFD700;
+                    font-weight: 700;
+                    font-size: 0.85rem;
+                    text-transform: uppercase;
+                    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+                ">
+                    <th style="padding: 16px 12px; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">🎯 Item</th>
+                    <th style="padding: 16px 12px; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">💰 Buy</th>
+                    <th style="padding: 16px 12px; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">💸 Sell</th>
+                    <th style="padding: 16px 12px; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">📈 Profit</th>
+                    <th style="padding: 16px 12px; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">📊 Volume</th>
+                    <th style="padding: 16px 12px; text-align: left; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">⚖️ Risk</th>
+                    <th style="padding: 16px 12px; text-align: center; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">📊</th>
+                    <th style="padding: 16px 12px; text-align: center; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">▼</th>
+                </tr>
+            </thead>
+            <tbody>
+    """
 
-    # Create custom table rows
+    # Add rows
     for idx, (_, row) in enumerate(df.iterrows()):
-        row_key = f"{start_idx}_{idx}_{row['Item']}"
-        create_custom_table_row(row, row_key, idx)
+        row_id = f"row_{start_idx}_{idx}"
+        expanded_id = f"expanded_{start_idx}_{idx}"
 
+        # Determine profit-based styling
+        profit = row['Net Margin']
+        if profit >= 5000:
+            bg_color = "rgba(255, 215, 0, 0.12)"
+            border_color = "#FFD700"
+        elif profit >= 2000:
+            bg_color = "rgba(76, 175, 80, 0.1)"
+            border_color = "#4CAF50"
+        elif profit >= 1000:
+            bg_color = "rgba(74, 144, 226, 0.08)"
+            border_color = "#4A90E2"
+        else:
+            bg_color = "rgba(255, 255, 255, 0.02)"
+            border_color = "rgba(255, 255, 255, 0.1)"
 
-def create_custom_table_row(row, row_key, idx):
-    """Create a custom table row with inline actions and expandability"""
+        # Risk color
+        risk_text = row['Risk Rating']
+        if "SAFE" in risk_text:
+            risk_color = "#4CAF50"
+        elif "HIGH RISK" in risk_text:
+            risk_color = "#FF6B6B"
+        else:
+            risk_color = "#FFC107"
 
-    # Determine profit-based styling
-    profit = row['Net Margin']
-    if profit >= 5000:
-        bg_color = "rgba(255, 215, 0, 0.12)"
-        border_color = "#FFD700"
-    elif profit >= 2000:
-        bg_color = "rgba(76, 175, 80, 0.1)"
-        border_color = "#4CAF50"
-    elif profit >= 1000:
-        bg_color = "rgba(74, 144, 226, 0.08)"
-        border_color = "#4A90E2"
-    else:
-        bg_color = "rgba(255, 255, 255, 0.03)"
-        border_color = "rgba(255, 255, 255, 0.1)"
-
-    # Check if row is expanded
-    is_expanded = row_key in st.session_state.expanded_rows
-
-    # Main row container
-    with st.container():
         # Main row
-        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 1, 1, 1.5, 1.2, 1, 0.8, 0.6])
+        table_html += f"""
+                <tr id="{row_id}" style="
+                    background: {bg_color};
+                    border-left: 3px solid {border_color};
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                    transition: all 0.2s ease;
+                    cursor: pointer;
+                " onmouseover="this.style.background='rgba(255, 215, 0, 0.08)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 8px rgba(255, 215, 0, 0.15)'"
+                   onmouseout="this.style.background='{bg_color}'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <td style="padding: 14px 12px; color: #FFFFFF; font-weight: 600; font-size: 0.9rem; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">{row['Item']}</td>
+                    <td style="padding: 14px 12px; color: var(--text-primary); font-size: 0.9rem;">{row['Buy Price Formatted']}</td>
+                    <td style="padding: 14px 12px; color: var(--text-primary); font-size: 0.9rem;">{row['Sell Price Formatted']}</td>
+                    <td style="padding: 14px 12px; color: #FFD700; font-weight: 700; font-size: 0.9rem; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">{row['Margin Formatted']} ({row['ROI (%)']:.1f}%)</td>
+                    <td style="padding: 14px 12px; color: var(--text-primary); font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; font-weight: 600;">{row['1h Volume']:,}</td>
+                    <td style="padding: 14px 12px; color: {risk_color}; font-weight: 600; font-size: 0.9rem; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">{risk_text}</td>
+                    <td style="padding: 14px 12px; text-align: center;">
+                        <button onclick="openChart('{row['Item']}')" style="
+                            background: linear-gradient(135deg, #4A90E2, #74C0FC);
+                            border: none;
+                            border-radius: 6px;
+                            color: white;
+                            padding: 6px 10px;
+                            font-size: 0.8rem;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            font-weight: 600;
+                        " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(74, 144, 226, 0.3)'"
+                           onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">📊</button>
+                    </td>
+                    <td style="padding: 14px 12px; text-align: center;">
+                        <button onclick="toggleRow('{expanded_id}', this)" style="
+                            background: rgba(255, 255, 255, 0.1);
+                            border: 1px solid rgba(255, 255, 255, 0.2);
+                            border-radius: 6px;
+                            color: #FFD700;
+                            padding: 6px 10px;
+                            font-size: 0.8rem;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            font-weight: 600;
+                        " onmouseover="this.style.background='rgba(255, 215, 0, 0.2)'"
+                           onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">▼</button>
+                    </td>
+                </tr>
+        """
 
-        # Apply custom styling to the row
-        st.markdown(f"""
-        <style>
-        .custom-row-{idx} {{
-            background: {bg_color} !important;
-            border-left: 3px solid {border_color} !important;
-            border-radius: 8px !important;
-            padding: 8px !important;
-            margin: 2px 0 !important;
-            transition: all 0.2s ease !important;
-        }}
-        .custom-row-{idx}:hover {{
-            background: rgba(255, 215, 0, 0.08) !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.15) !important;
-        }}
-        </style>
-        <div class="custom-row-{idx}">
-        """, unsafe_allow_html=True)
+        # Expanded row (hidden by default)
+        table_html += f"""
+                <tr id="{expanded_id}" style="display: none;">
+                    <td colspan="8" style="
+                        padding: 0;
+                        background: rgba(255, 255, 255, 0.05);
+                        border-left: 3px solid {border_color};
+                    ">
+                        <div style="
+                            padding: 20px;
+                            background: linear-gradient(135deg, {bg_color}, rgba(255, 255, 255, 0.02));
+                            border: 1px solid rgba(255, 215, 0, 0.1);
+                            margin: 8px;
+                            border-radius: 8px;
+                        ">
+                            <h4 style="color: #FFD700; margin: 0 0 16px 0; font-size: 1rem;">🔍 {row['Item']} - Detailed Analysis</h4>
 
-        with col1:
-            st.write(f"**{row['Item']}**")
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px;">
+                                <div style="text-align: center; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                                    <div style="color: #4CAF50; font-weight: 700; font-size: 1.2rem;">{row['Buy Price']:,}</div>
+                                    <div style="color: #B0B8C5; font-size: 0.8rem;">💰 Buy Price</div>
+                                </div>
+                                <div style="text-align: center; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                                    <div style="color: #4CAF50; font-weight: 700; font-size: 1.2rem;">{row['Sell Price']:,}</div>
+                                    <div style="color: #B0B8C5; font-size: 0.8rem;">💸 Sell Price</div>
+                                </div>
+                                <div style="text-align: center; padding: 12px; background: rgba(255, 215, 0, 0.1); border-radius: 8px;">
+                                    <div style="color: #FFD700; font-weight: 700; font-size: 1.2rem;">{row['Net Margin']:,}</div>
+                                    <div style="color: #B0B8C5; font-size: 0.8rem;">📈 Net Profit</div>
+                                </div>
+                                <div style="text-align: center; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                                    <div style="color: #74C0FC; font-weight: 700; font-size: 1.2rem;">{row['ROI (%)']:.1f}%</div>
+                                    <div style="color: #B0B8C5; font-size: 0.8rem;">📊 ROI</div>
+                                </div>
+                            </div>
 
-        with col2:
-            st.write(f"{row['Buy Price Formatted']}")
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; color: #E0E0E0; font-size: 0.9rem;">
+                                <div>
+                                    <div style="margin-bottom: 8px;"><strong>📊 Volume/Hour:</strong> {row['1h Volume']:,}</div>
+                                    <div style="margin-bottom: 8px;"><strong>⚖️ Risk Level:</strong> <span style="color: {risk_color};">{risk_text}</span></div>
+                                    {f'<div style="margin-bottom: 8px;"><strong>⏰ Data Age:</strong> {row["Data Age (min)"]:.0f} minutes</div>' if 'Data Age (min)' in row else ''}
+                                </div>
+                                <div>
+                                    {f'<div style="margin-bottom: 8px;"><strong>🔬 Manipulation Score:</strong> {row["Manipulation Score"]}/10</div>' if 'Manipulation Score' in row else ''}
+                                    {f'<div style="margin-bottom: 8px;"><strong>📈 Volatility Score:</strong> {row["Volatility Score"]}/10</div>' if 'Volatility Score' in row else ''}
+                                    {f'<div style="margin-bottom: 8px;"><strong>⚡ Utility Score:</strong> {row["Utility"]:,.0f}</div>' if 'Utility' in row else ''}
+                                </div>
+                            </div>
 
-        with col3:
-            st.write(f"{row['Sell Price Formatted']}")
+                            <div style="margin-top: 16px; text-align: center;">
+                                <button onclick="addToWatchlist('{row['Item']}')" style="
+                                    background: linear-gradient(135deg, #FF8C00, #FFB84D);
+                                    border: none;
+                                    border-radius: 8px;
+                                    color: white;
+                                    padding: 10px 20px;
+                                    font-size: 0.9rem;
+                                    cursor: pointer;
+                                    font-weight: 600;
+                                    margin: 0 8px;
+                                    transition: all 0.2s ease;
+                                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(255, 140, 0, 0.3)'"
+                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">⭐ Add to Watchlist</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+        """
 
-        with col4:
-            st.write(f"**{row['Margin Formatted']}** ({row['ROI (%)']:.1f}%)")
+    table_html += """
+            </tbody>
+        </table>
+    </div>
 
-        with col5:
-            st.write(f"{row['1h Volume']:,}")
+    <script>
+        function toggleRow(expandedId, button) {
+            const expandedRow = document.getElementById(expandedId);
+            if (expandedRow.style.display === 'none') {
+                expandedRow.style.display = 'table-row';
+                button.innerHTML = '▲';
+                button.style.background = 'rgba(255, 215, 0, 0.2)';
+            } else {
+                expandedRow.style.display = 'none';
+                button.innerHTML = '▼';
+                button.style.background = 'rgba(255, 255, 255, 0.1)';
+            }
+        }
 
-        with col6:
-            # Risk indicator with color
-            risk = row['Risk Rating']
-            if "SAFE" in risk:
-                st.markdown(f'<span style="color: #4CAF50; font-weight: 600;">{risk}</span>', unsafe_allow_html=True)
-            elif "HIGH RISK" in risk:
-                st.markdown(f'<span style="color: #FF6B6B; font-weight: 600;">{risk}</span>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<span style="color: #FFC107; font-weight: 600;">{risk}</span>', unsafe_allow_html=True)
+        function openChart(itemName) {
+            // This will be handled by Streamlit's session state
+            window.parent.postMessage({
+                type: 'streamlit:componentReady',
+                data: {
+                    action: 'chart',
+                    item: itemName
+                }
+            }, '*');
+        }
 
-        with col7:
-            # Inline chart button
-            if st.button("📊", key=f"chart_{row_key}", help=f"View {row['Item']} chart"):
-                st.session_state['selected_item'] = row['Item']
-                st.session_state.page = 'charts'
-                st.rerun()
+        function addToWatchlist(itemName) {
+            // This will be handled by Streamlit's session state
+            window.parent.postMessage({
+                type: 'streamlit:componentReady', 
+                data: {
+                    action: 'watchlist',
+                    item: itemName
+                }
+            }, '*');
+        }
+    </script>
+    """
 
-        with col8:
-            # Expand/collapse button
-            expand_icon = "📋" if not is_expanded else "📋"
-            if st.button(expand_icon, key=f"expand_{row_key}", help="Show details"):
-                if row_key in st.session_state.expanded_rows:
-                    st.session_state.expanded_rows.remove(row_key)
-                else:
-                    st.session_state.expanded_rows.add(row_key)
-                st.rerun()
+    # Display the custom table
+    st.markdown(table_html, unsafe_allow_html=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # Expandable details section
-        if is_expanded:
-            create_inline_expanded_details(row)
+    # Handle chart and watchlist actions via form submission
+    create_action_handlers(df, start_idx)
 
 
-def create_inline_expanded_details(row):
-    """Create expanded details section for a table row"""
+def create_action_handlers(df, start_idx):
+    """Create hidden form handlers for chart and watchlist actions"""
 
-    st.markdown(f"""
-    <div style="
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 215, 0, 0.2);
-        border-radius: 8px;
-        padding: 16px;
-        margin: 8px 0 16px 0;
-        backdrop-filter: blur(10px);
-    ">
-    """, unsafe_allow_html=True)
+    # Chart action handler
+    with st.form(key=f"chart_handler_{start_idx}", clear_on_submit=True):
+        chart_item = st.selectbox(
+            "Chart Item",
+            options=[''] + df['Item'].tolist(),
+            key=f"chart_item_{start_idx}",
+            label_visibility="collapsed"
+        )
+        chart_submitted = st.form_submit_button("Open Chart", style={"display": "none"})
 
-    st.markdown(f"#### 🔍 {row['Item']} - Detailed Analysis")
-
-    # Trading metrics in columns
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.metric("Buy Price", f"{row['Buy Price']:,} gp")
-
-    with col2:
-        st.metric("Sell Price", f"{row['Sell Price']:,} gp")
-
-    with col3:
-        st.metric("Net Profit", f"{row['Net Margin']:,} gp")
-
-    with col4:
-        st.metric("ROI", f"{row['ROI (%)']:.1f}%")
-
-    # Additional details if available
-    detail_col1, detail_col2 = st.columns(2)
-
-    with detail_col1:
-        st.write(f"**📊 Volume/Hour:** {row['1h Volume']:,}")
-        if 'Data Age (min)' in row:
-            st.write(f"**⏰ Data Age:** {row['Data Age (min)']:.0f} minutes")
-        if 'Momentum (%)' in row:
-            st.write(f"**📈 Momentum:** {row['Momentum (%)']:.1f}%")
-
-    with detail_col2:
-        if 'Manipulation Score' in row:
-            st.write(f"**🔬 Manipulation Score:** {row['Manipulation Score']}/10")
-        if 'Volatility Score' in row:
-            st.write(f"**📊 Volatility Score:** {row['Volatility Score']}/10")
-        if 'Utility' in row:
-            st.write(f"**⚡ Utility Score:** {row['Utility']:,.0f}")
-
-    # Action buttons in expanded view
-    action_col1, action_col2, action_col3 = st.columns(3)
-
-    with action_col1:
-        if st.button(f"📊 View Chart", key=f"detail_chart_{row['Item']}", type="primary"):
-            st.session_state['selected_item'] = row['Item']
+        if chart_submitted and chart_item:
+            st.session_state['selected_item'] = chart_item
             st.session_state.page = 'charts'
             st.rerun()
 
-    with action_col2:
-        if st.button(f"⭐ Add to Watchlist", key=f"detail_watch_{row['Item']}"):
+    # Watchlist action handler
+    with st.form(key=f"watchlist_handler_{start_idx}", clear_on_submit=True):
+        watch_item = st.selectbox(
+            "Watchlist Item",
+            options=[''] + df['Item'].tolist(),
+            key=f"watch_item_{start_idx}",
+            label_visibility="collapsed"
+        )
+        watch_submitted = st.form_submit_button("Add to Watchlist", style={"display": "none"})
+
+        if watch_submitted and watch_item:
             if 'watchlist' not in st.session_state:
                 st.session_state.watchlist = []
-            if row['Item'] not in st.session_state.watchlist:
-                st.session_state.watchlist.append(row['Item'])
-                st.success(f"Added {row['Item']} to watchlist!")
-
-    with action_col3:
-        if st.button(f"📋 Copy Data", key=f"detail_copy_{row['Item']}"):
-            copy_text = f"{row['Item']}: Buy {row['Buy Price']:,} → Sell {row['Sell Price']:,} = {row['Net Margin']:,} gp profit ({row['ROI (%)']:.1f}% ROI)"
-            st.info(f"📋 Copy this: `{copy_text}`")
-
-    st.markdown("</div>", unsafe_allow_html=True)
+            if watch_item not in st.session_state.watchlist:
+                st.session_state.watchlist.append(watch_item)
+                st.success(f"✅ Added {watch_item} to watchlist!")
 
 
 def get_profit_tier_class(margin):
