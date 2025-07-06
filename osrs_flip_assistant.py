@@ -212,13 +212,19 @@ def run_flip_scanner(mode="Custom"):
 def show_opportunities_page():
     global MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all
 
-    # Initialize default values
+    # Initialize default values with fallbacks
     MIN_MARGIN = st.session_state.get('min_margin', 500)
     MIN_VOLUME = st.session_state.get('min_volume', 500)
     MIN_UTILITY = st.session_state.get('min_utility', 10000)
+    mode = "Custom"
+    show_all = False
 
-    # Create sidebar with all filters and controls
-    mode, MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all = create_complete_sidebar()
+    # Create sidebar with all filters and controls (with error handling)
+    try:
+        mode, MIN_MARGIN, MIN_VOLUME, MIN_UTILITY, show_all = create_complete_sidebar()
+    except Exception as e:
+        st.error(f"❌ Sidebar creation failed: {e}")
+        st.info("Using default values. Check that sidebar.py and other imports are working.")
 
     # Store values in session state
     st.session_state['min_margin'] = MIN_MARGIN
