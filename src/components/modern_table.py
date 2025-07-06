@@ -312,48 +312,213 @@ def create_item_card(row, idx):
 
 
 def display_compact_table(df, start_idx):
-    """Display items in a compact, dense table format with integrated actions"""
+    """Display custom table with inline chart buttons and expandable rows"""
 
     st.markdown("### 📊 Trading Opportunities (Compact View)")
 
-    # Create a streamlined dataframe for display with action integration
-    display_data = []
+    # Initialize expanded rows state
+    if 'expanded_rows' not in st.session_state:
+        st.session_state.expanded_rows = set()
 
+    # Create custom table header
+    st.markdown("""
+    <div style="
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1.5fr 1.2fr 1fr 0.8fr 0.6fr;
+        gap: 8px;
+        padding: 12px 16px;
+        background: rgba(255, 215, 0, 0.1);
+        border-radius: 8px 8px 0 0;
+        font-weight: 700;
+        color: #FFD700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+    ">
+        <div>🎯 Item</div>
+        <div>💰 Buy</div>
+        <div>💸 Sell</div>
+        <div>📈 Profit</div>
+        <div>📊 Volume</div>
+        <div>⚖️ Risk</div>
+        <div>📊 Chart</div>
+        <div>📋</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Create custom table rows
     for idx, (_, row) in enumerate(df.iterrows()):
-        # Get profit tier for background styling
-        profit_tier = get_profit_tier_class(row['Net Margin'])
+        row_key = f"{start_idx}_{idx}_{row['Item']}"
+        create_custom_table_row(row, row_key, idx)
 
-        # Format the data for compact display
-        display_data.append({
-            '🎯 Item': row['Item'],
-            '💰 Buy': row['Buy Price Formatted'],
-            '💰 Sell': row['Sell Price Formatted'],
-            '📈 Profit': f"{row['Margin Formatted']} ({row['ROI (%)']:.1f}%)",
-            '📊 Volume': f"{row['1h Volume']:,}",
-            '⚡ Risk': row['Risk Rating'],
-            'Profit_Value': row['Net Margin'],  # Hidden column for styling
-            'Item_Name': row['Item']  # Hidden column for actions
-        })
 
-    # Convert to dataframe for streamlit display
-    compact_df = pd.DataFrame(display_data)
+def create_custom_table_row(row, row_key, idx):
+    """Create a custom table row with inline actions and expandability"""
 
-    # Display as streamlit dataframe with custom configuration
-    st.dataframe(
-        compact_df[['🎯 Item', '💰 Buy', '💰 Sell', '📈 Profit', '📊 Volume', '⚡ Risk']],
-        use_container_width=True,
-        hide_index=True,
-        height=400  # Fixed height for scrolling
-    )
+    # Determine profit-based styling
+    profit = row['Net Margin']
+    if profit >= 5000:
+        bg_color = "rgba(255, 215, 0, 0.12)"
+        border_color = "#FFD700"
+    elif profit >= 2000:
+        bg_color = "rgba(76, 175, 80, 0.1)"
+        border_color = "#4CAF50"
+    elif profit >= 1000:
+        bg_color = "rgba(74, 144, 226, 0.08)"
+        border_color = "#4A90E2"
+    else:
+        bg_color = "rgba(255, 255, 255, 0.03)"
+        border_color = "rgba(255, 255, 255, 0.1)"
 
-    # Add quick chart action below table
-    create_integrated_chart_actions(df, start_idx)
+    # Check if row is expanded
+    is_expanded = row_key in st.session_state.expanded_rows
 
-    # Store dataframe for expandable details
-    st.session_state.current_table_df = df
+    # Main row container
+    with st.container():
+        # Main row
+        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([2, 1, 1, 1.5, 1.2, 1, 0.8, 0.6])
 
-    # Add expandable details section
-    create_expandable_row_details()
+        # Apply custom styling to the row
+        st.markdown(f"""
+        <style>
+        .custom-row-{idx} {{
+            background: {bg_color} !important;
+            border-left: 3px solid {border_color} !important;
+            border-radius: 8px !important;
+            padding: 8px !important;
+            margin: 2px 0 !important;
+            transition: all 0.2s ease !important;
+        }}
+        .custom-row-{idx}:hover {{
+            background: rgba(255, 215, 0, 0.08) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.15) !important;
+        }}
+        </style>
+        <div class="custom-row-{idx}">
+        """, unsafe_allow_html=True)
+
+        with col1:
+            st.write(f"**{row['Item']}**")
+
+        with col2:
+            st.write(f"{row['Buy Price Formatted']}")
+
+        with col3:
+            st.write(f"{row['Sell Price Formatted']}")
+
+        with col4:
+            st.write(f"**{row['Margin Formatted']}** ({row['ROI (%)']:.1f}%)")
+
+        with col5:
+            st.write(f"{row['1h Volume']:,}")
+
+        with col6:
+            # Risk indicator with color
+            risk = row['Risk Rating']
+            if "SAFE" in risk:
+                st.markdown(f'<span style="color: #4CAF50; font-weight: 600;">{risk}</span>', unsafe_allow_html=True)
+            elif "HIGH RISK" in risk:
+                st.markdown(f'<span style="color: #FF6B6B; font-weight: 600;">{risk}</span>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<span style="color: #FFC107; font-weight: 600;">{risk}</span>', unsafe_allow_html=True)
+
+        with col7:
+            # Inline chart button
+            if st.button("📊", key=f"chart_{row_key}", help=f"View {row['Item']} chart"):
+                st.session_state['selected_item'] = row['Item']
+                st.session_state.page = 'charts'
+                st.rerun()
+
+        with col8:
+            # Expand/collapse button
+            expand_icon = "📋" if not is_expanded else "📋"
+            if st.button(expand_icon, key=f"expand_{row_key}", help="Show details"):
+                if row_key in st.session_state.expanded_rows:
+                    st.session_state.expanded_rows.remove(row_key)
+                else:
+                    st.session_state.expanded_rows.add(row_key)
+                st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Expandable details section
+        if is_expanded:
+            create_inline_expanded_details(row)
+
+
+def create_inline_expanded_details(row):
+    """Create expanded details section for a table row"""
+
+    st.markdown(f"""
+    <div style="
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 8px;
+        padding: 16px;
+        margin: 8px 0 16px 0;
+        backdrop-filter: blur(10px);
+    ">
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"#### 🔍 {row['Item']} - Detailed Analysis")
+
+    # Trading metrics in columns
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Buy Price", f"{row['Buy Price']:,} gp")
+
+    with col2:
+        st.metric("Sell Price", f"{row['Sell Price']:,} gp")
+
+    with col3:
+        st.metric("Net Profit", f"{row['Net Margin']:,} gp")
+
+    with col4:
+        st.metric("ROI", f"{row['ROI (%)']:.1f}%")
+
+    # Additional details if available
+    detail_col1, detail_col2 = st.columns(2)
+
+    with detail_col1:
+        st.write(f"**📊 Volume/Hour:** {row['1h Volume']:,}")
+        if 'Data Age (min)' in row:
+            st.write(f"**⏰ Data Age:** {row['Data Age (min)']:.0f} minutes")
+        if 'Momentum (%)' in row:
+            st.write(f"**📈 Momentum:** {row['Momentum (%)']:.1f}%")
+
+    with detail_col2:
+        if 'Manipulation Score' in row:
+            st.write(f"**🔬 Manipulation Score:** {row['Manipulation Score']}/10")
+        if 'Volatility Score' in row:
+            st.write(f"**📊 Volatility Score:** {row['Volatility Score']}/10")
+        if 'Utility' in row:
+            st.write(f"**⚡ Utility Score:** {row['Utility']:,.0f}")
+
+    # Action buttons in expanded view
+    action_col1, action_col2, action_col3 = st.columns(3)
+
+    with action_col1:
+        if st.button(f"📊 View Chart", key=f"detail_chart_{row['Item']}", type="primary"):
+            st.session_state['selected_item'] = row['Item']
+            st.session_state.page = 'charts'
+            st.rerun()
+
+    with action_col2:
+        if st.button(f"⭐ Add to Watchlist", key=f"detail_watch_{row['Item']}"):
+            if 'watchlist' not in st.session_state:
+                st.session_state.watchlist = []
+            if row['Item'] not in st.session_state.watchlist:
+                st.session_state.watchlist.append(row['Item'])
+                st.success(f"Added {row['Item']} to watchlist!")
+
+    with action_col3:
+        if st.button(f"📋 Copy Data", key=f"detail_copy_{row['Item']}"):
+            copy_text = f"{row['Item']}: Buy {row['Buy Price']:,} → Sell {row['Sell Price']:,} = {row['Net Margin']:,} gp profit ({row['ROI (%)']:.1f}% ROI)"
+            st.info(f"📋 Copy this: `{copy_text}`")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def get_profit_tier_class(margin):
