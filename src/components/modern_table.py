@@ -327,30 +327,19 @@ def display_compact_table(df, start_idx):
             '💰 Sell': row['Sell Price Formatted'],
             '📈 Profit': f"{row['Margin Formatted']} ({row['ROI (%)']:.1f}%)",
             '📊 Volume': f"{row['1h Volume']:,}",
-            '⚡ Risk': row['Risk Rating'],
-            '📋 Actions': f"chart_{start_idx + idx}|watch_{start_idx + idx}|{row['Item']}"
+            '⚡ Risk': row['Risk Rating']
         })
 
     # Convert to dataframe for streamlit display
     compact_df = pd.DataFrame(display_data)
 
-    # Display as streamlit dataframe with custom configuration
+    # Display as streamlit dataframe with custom configuration - no actions column
     st.dataframe(
         compact_df,
         use_container_width=True,
         hide_index=True,
-        height=400,  # Fixed height for scrolling
-        column_config={
-            "📋 Actions": st.column_config.TextColumn(
-                "Actions",
-                help="Click to chart or watch items",
-                width="medium"
-            )
-        }
+        height=400  # Fixed height for scrolling
     )
-
-    # Add action buttons below table for selected items
-    create_compact_action_buttons(df, start_idx)
 
 
 def create_compact_action_buttons(df, start_idx):

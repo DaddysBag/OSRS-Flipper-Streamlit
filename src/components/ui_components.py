@@ -140,36 +140,36 @@ def create_metric_card(label, value, delta=None, icon="📊", color="#4A90E2"):
 
 
 def create_hero_section():
-    """Create a compact hero header that doesn't waste space"""
+    """Ultra-compact hero header to minimize scrolling"""
 
     st.markdown("""
     <div style="
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 24px;
-        background: linear-gradient(90deg, rgba(255, 215, 0, 0.08), rgba(74, 144, 226, 0.08));
-        border: 1px solid rgba(255, 215, 0, 0.2);
-        border-radius: 12px;
-        margin: 8px 0 16px 0;
+        padding: 8px 16px;
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.06), rgba(74, 144, 226, 0.06));
+        border: 1px solid rgba(255, 215, 0, 0.15);
+        border-radius: 8px;
+        margin: 4px 0 8px 0;
     ">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="font-size: 1.8rem;">💰</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 1.4rem;">💰</div>
             <div>
                 <h1 style="
                     color: #FFD700;
                     margin: 0;
-                    font-size: 1.5rem;
+                    font-size: 1.3rem;
                     font-weight: 600;
                 ">OSRS GE Flip Assistant</h1>
                 <p style="
                     color: #B0B8C5;
                     margin: 0;
-                    font-size: 0.85rem;
+                    font-size: 0.8rem;
                 ">Real-time Grand Exchange analysis</p>
             </div>
         </div>
-        <div style="display: flex; gap: 16px; color: #B0B8C5; font-size: 0.8rem;">
+        <div style="display: flex; gap: 12px; color: #B0B8C5; font-size: 0.75rem;">
             <span>📊 Live Data</span>
             <span>🛡️ Risk Analysis</span>
             <span>🎯 Smart Filtering</span>

@@ -23,7 +23,7 @@ def create_enhanced_header():
 
 
 def create_simple_status_indicators():
-    """Clean status line with refresh button inline on the right"""
+    """Clean status line with minimal padding"""
 
     # Calculate time since last update (keep existing logic)
     current_time = datetime.datetime.now()
@@ -53,22 +53,22 @@ def create_simple_status_indicators():
         system_status = "📋 Browse Mode"
         system_detail = "Showing all items"
 
-    # Layout: Status indicators on left, refresh button on right
+    # Minimal layout with reduced spacing
     col1, col2 = st.columns([3, 1])
 
     with col1:
-        # Status indicators
+        # Status indicators with minimal padding
         st.markdown(f"""
         <div style="
             display: flex;
             align-items: center;
-            gap: 24px;
-            padding: 12px 20px;
+            gap: 20px;
+            padding: 8px 16px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            margin: 8px 0;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin: 4px 0;
         ">
             <span><strong>{data_status}</strong> <span style="color: #B0B8C5;">({data_detail})</span></span>
             <span><strong>{system_status}</strong> <span style="color: #B0B8C5;">({system_detail})</span></span>
@@ -76,7 +76,7 @@ def create_simple_status_indicators():
         """, unsafe_allow_html=True)
 
     with col2:
-        # Refresh button aligned to the right
+        # Refresh button with minimal styling
         if st.button("🔄 Refresh Data", key="header_refresh", type="secondary"):
             st.session_state.last_update_time = current_time
             st.session_state['force_data_refresh'] = True
