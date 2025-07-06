@@ -6,10 +6,13 @@ Contains the main header, navigation, and status indicators
 import streamlit as st
 import datetime
 from cache_manager import cache_manager
+from src.components.ui_components import create_hero_section, create_quick_stats_row, create_metric_card
 
 
 def create_enhanced_header():
-    """Create the enhanced header with status indicators"""
+    """Create the modern enhanced header with OSRS theming"""
+
+    from src.components.ui_components import create_hero_section, create_quick_stats_row, create_metric_card
 
     # Get cache stats for status bar
     cache_stats = cache_manager.get_stats()
@@ -22,37 +25,49 @@ def create_enhanced_header():
     time_diff = current_time - st.session_state.last_update_time
     minutes_ago = int(time_diff.total_seconds() / 60)
 
-    # Main header
-    st.markdown("""
-    <h1 style="color: #ffd700; font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">
-    💸 OSRS GE Flipping Assistant
-    </h1>
-    """, unsafe_allow_html=True)
+    # Modern hero section
+    create_hero_section()
 
-    st.markdown("""
-    <p style="color: #bbb; font-size: 1.1rem; margin-bottom: 20px;">
-    Real-time Grand Exchange opportunity scanner with advanced analytics
-    </p>
-    """, unsafe_allow_html=True)
-
-    # Status indicators using columns
+    # Quick stats row with modern styling
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.success("✅ API Connected")
+        api_status = "🟢 Connected" if cache_stats['hit_rate'] > 0 else "🔴 Disconnected"
+        create_metric_card(
+            "API Status",
+            api_status,
+            icon="🌐",
+            color="var(--osrs-green-light)" if "Connected" in api_status else "var(--osrs-red-light)"
+        )
 
     with col2:
-        st.info(f"📊 Cache Hit Rate: {cache_stats['hit_rate']:.1f}%")
+        create_metric_card(
+            "Cache Performance",
+            f"{cache_stats['hit_rate']:.1f}%",
+            delta="Optimized" if cache_stats['hit_rate'] > 70 else "Needs improvement",
+            icon="⚡",
+            color="var(--osrs-blue-light)"
+        )
 
     with col3:
-        st.info(f"⏰ Last Update: {minutes_ago} min ago")
+        time_status = "🟢 Fresh" if minutes_ago < 5 else "🟡 Recent" if minutes_ago < 15 else "🔴 Stale"
+        create_metric_card(
+            "Data Freshness",
+            f"{minutes_ago}m ago",
+            delta=time_status,
+            icon="⏰",
+            color="var(--osrs-orange)"
+        )
 
     with col4:
         alert_status = "🔔 Active" if not st.session_state.get('show_all_table', False) else "🚫 Disabled"
-        if "Active" in alert_status:
-            st.success(alert_status)
-        else:
-            st.warning(alert_status)
+        create_metric_card(
+            "Alert System",
+            alert_status.split(" ")[1],
+            delta=alert_status,
+            icon="🔔",
+            color="var(--osrs-gold)" if "Active" in alert_status else "var(--text-muted)"
+        )
 
 
 def create_navigation():

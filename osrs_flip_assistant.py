@@ -56,7 +56,7 @@ from alerts import (
     clear_alert_history
 )
 
-from src.styles.main_styles import inject_main_styles, inject_interactive_javascript
+from src.styles.main_styles import inject_modern_osrs_styles, inject_interactive_javascript
 from src.components.header import create_enhanced_header, create_navigation, create_page_title, create_performance_badge
 from src.components.sidebar import create_complete_sidebar
 from src.components.data_loader import load_flip_data, create_debug_section
@@ -516,7 +516,7 @@ def show_chart_analysis(ts, item_name, time_period):
 
 def inject_custom_css():
     """Inject custom CSS for OSRS-themed dark UI"""
-    inject_main_styles()
+    inject_modern_osrs_styles()
     inject_interactive_javascript()
 
 def create_table_header(total_items, avg_margin, avg_risk_util):
